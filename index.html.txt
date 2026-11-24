@@ -1,0 +1,1833 @@
+<!index.html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Saveurs & Budget - Mon Planificateur de Repas</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        display: ['Fraunces', 'serif'],
+                    },
+                    colors: {
+                        cream: '#FAF7F2',
+                        sand: '#F2ECE1',
+                        sage: {
+                            50: '#F4F7F4',
+                            100: '#E3EBE3',
+                            500: '#5C7C65',
+                            600: '#4A6652',
+                            700: '#3B5242',
+                        },
+                        terracotta: {
+                            50: '#FDF6F3',
+                            100: '#FBE8E0',
+                            500: '#D46A4E',
+                            600: '#BC563B',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #EFECE6;
+        }
+        /* Masquer la barre de défilement tout en gardant le scroll */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade {
+            animation: fadeIn 0.25s ease-out forwards;
+        }
+    </style>
+</head>
+<body class="text-stone-800 antialiased flex justify-center min-h-screen">
+
+    <!-- Conteneur format Mobile App -->
+    <div class="w-full max-w-md bg-cream min-h-screen shadow-2xl flex flex-col relative overflow-hidden border-x border-stone-200/80">
+        
+        <!-- En-tête de l'application -->
+        <header class="bg-cream/95 backdrop-blur-md sticky top-0 z-20 px-5 pt-5 pb-3 border-b border-stone-200/70">
+            <div class="flex items-center justify-between">
+                <div>
+                    <span class="text-xs font-semibold uppercase tracking-wider text-sage-600">Cuisine maison & économe</span>
+                    <h1 class="font-display text-2xl font-bold text-stone-900">Saveurs & Budget</h1>
+                    <p id="storage-status" class="text-[11px] text-stone-500 mt-0.5">💾 Sauvegarde locale active</p>
+                </div>
+                <button onclick="resetDemoData()" title="Réinitialiser les données de démo" class="p-2 rounded-full bg-sand text-stone-600 hover:bg-stone-200 transition text-xs font-medium flex items-center gap-1">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                    <span>Démo</span>
+                </button>
+            </div>
+            <!-- Barre d'actions de sauvegarde / restauration JSON -->
+            <div class="flex items-center gap-2 mt-2.5 pt-2 border-t border-stone-200/60">
+                <button type="button" onclick="exportBackupData()" class="flex-1 py-1.5 px-2.5 rounded-xl bg-white hover:bg-stone-50 border border-stone-200 text-[11px] font-semibold text-stone-700 transition flex items-center justify-center gap-1.5">
+                    <span>💾</span>
+                    <span>Exporter sauvegarde</span>
+                </button>
+                <label class="flex-1 cursor-pointer py-1.5 px-2.5 rounded-xl bg-white hover:bg-stone-50 border border-stone-200 text-[11px] font-semibold text-stone-700 transition flex items-center justify-center gap-1.5">
+                    <span>📂</span>
+                    <span>Importer JSON</span>
+                    <input type="file" id="import-backup-file" accept=".json,application/json" onchange="importBackupData(this)" class="hidden">
+                </label>
+            </div>
+        </header>
+
+        <!-- Zone de notification Toast -->
+        <div id="toast" class="fixed top-16 left-1/2 -translate-x-1/2 z-50 hidden bg-stone-900 text-white text-sm px-4 py-2.5 rounded-full shadow-lg flex items-center gap-2 transition-all">
+            <span id="toast-icon">✅</span>
+            <span id="toast-msg">Action effectuée</span>
+        </div>
+
+        <!-- Contenu principal défilant -->
+        <main id="app-content" class="flex-1 overflow-y-auto pb-24 px-4 pt-4 space-y-4">
+            <!-- Injecté dynamiquement par JS -->
+        </main>
+
+        <!-- Barre de navigation inférieure fixe -->
+        <nav class="fixed bottom-0 w-full max-w-md bg-white/95 backdrop-blur-md border-t border-stone-200 px-2 py-2 flex justify-around items-center z-30">
+            <button onclick="switchTab('recipes')" id="nav-recipes" class="nav-btn flex flex-col items-center justify-center w-24 py-1.5 rounded-2xl transition">
+                <svg class="w-6 h-6 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
+                <span class="text-xs font-semibold">Mes Recettes</span>
+            </button>
+            <button onclick="switchTab('week')" id="nav-week" class="nav-btn flex flex-col items-center justify-center w-24 py-1.5 rounded-2xl transition relative">
+                <svg class="w-6 h-6 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                <span class="text-xs font-semibold">Ma Semaine</span>
+                <span id="week-badge" class="hidden absolute top-1 right-4 bg-terracotta-500 text-white text-[10px] font-bold px-1.5 rounded-full">0</span>
+            </button>
+            <button onclick="switchTab('shopping')" id="nav-shopping" class="nav-btn flex flex-col items-center justify-center w-24 py-1.5 rounded-2xl transition relative">
+                <svg class="w-6 h-6 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                <span class="text-xs font-semibold">Courses</span>
+                <span id="shop-badge" class="hidden absolute top-1 right-4 bg-sage-600 text-white text-[10px] font-bold px-1.5 rounded-full">0</span>
+            </button>
+        </nav>
+
+        <!-- MODALE 1 : Détail d'une recette -->
+        <div id="modal-recipe-detail" class="fixed inset-0 bg-stone-900/50 backdrop-blur-xs z-40 hidden flex items-end sm:items-center justify-center">
+            <div class="bg-cream w-full max-w-md rounded-t-3xl sm:rounded-3xl max-h-[90vh] flex flex-col overflow-hidden shadow-2xl animate-fade">
+                <div id="recipe-detail-body" class="overflow-y-auto p-5 space-y-4"></div>
+            </div>
+        </div>
+
+        <!-- MODALE 2 : Ajouter une recette (avec simulation Instagram/TikTok) -->
+        <div id="modal-add-recipe" class="fixed inset-0 bg-stone-900/50 backdrop-blur-xs z-40 hidden flex items-end sm:items-center justify-center">
+            <div class="bg-cream w-full max-w-md rounded-t-3xl sm:rounded-3xl max-h-[92vh] flex flex-col overflow-hidden shadow-2xl animate-fade">
+                <div class="px-5 py-4 bg-white border-b border-stone-200 flex justify-between items-center">
+                    <h2 class="font-display text-lg font-bold text-stone-900">Nouvelle Recette</h2>
+                    <button onclick="closeModal('modal-add-recipe')" class="p-1.5 rounded-full bg-stone-100 text-stone-500 hover:text-stone-800">✕</button>
+                </div>
+                
+                <div class="overflow-y-auto p-5 space-y-4">
+                    <!-- Extracteur IA Réseaux Sociaux (Texte ou Fichier Vidéo) -->
+                    <div class="bg-gradient-to-br from-terracotta-50 to-amber-50 border border-terracotta-200 rounded-2xl p-3.5 space-y-2.5">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-bold uppercase tracking-wide text-terracotta-600 flex items-center gap-1.5">
+                                ✨ Extracteur IA TikTok / Instagram
+                            </span>
+                            <button type="button" onclick="fillDemoSocialText()" class="text-[11px] font-semibold text-terracotta-600 underline hover:text-terracotta-700">
+                                Tester avec un exemple
+                            </button>
+                        </div>
+                        <p class="text-xs text-stone-600 leading-relaxed">
+                            Colle la légende/transcription de la vidéo <strong>ou</strong> importe la vidéo enregistrée depuis ton téléphone :
+                        </p>
+                        
+                        <textarea id="social-raw-text" rows="2" placeholder="Colle ici le texte ou les ingrédients en vrac de TikTok/Instagram..." class="w-full px-3 py-2 bg-white/90 border border-terracotta-200 rounded-xl text-xs focus:outline-none focus:border-terracotta-500"></textarea>
+                        
+                        <div class="flex items-center gap-2">
+                            <label class="flex-1 cursor-pointer bg-white hover:bg-stone-50 border border-dashed border-terracotta-300 rounded-xl px-3 py-2 text-xs text-stone-600 flex items-center justify-center gap-1.5 transition truncate">
+                                <span>🎥</span>
+                                <span id="video-file-label" class="truncate font-medium">Importer une vidéo (MP4/MOV)</span>
+                                <input type="file" id="social-video-file" accept="video/*" onchange="handleVideoFileSelect(this)" class="hidden">
+                            </label>
+                            <button type="button" onclick="clearSocialImport()" id="clear-social-btn" class="hidden px-2.5 py-2 bg-white border border-stone-200 rounded-xl text-xs text-stone-500 hover:text-red-500" title="Effacer">✕</button>
+                        </div>
+
+                        <button type="button" id="ai-extract-btn" onclick="extractRecipeWithAI()" class="w-full py-2.5 px-3 bg-terracotta-500 hover:bg-terracotta-600 disabled:opacity-60 text-white text-xs font-bold rounded-xl shadow-xs transition flex items-center justify-center gap-2">
+                            <span id="ai-extract-icon">🪄</span>
+                            <span id="ai-extract-text">Extraire la recette automatiquement</span>
+                        </button>
+                    </div>
+
+                    <form id="add-recipe-form" onsubmit="saveNewRecipe(event)" class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-stone-700 mb-1">Titre du plat *</label>
+                            <input type="text" id="rec-title" required placeholder="Ex: Chakchouka express aux œufs" class="w-full px-3.5 py-2.5 bg-white border border-stone-300 rounded-xl text-sm focus:outline-none focus:border-sage-500">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-stone-700 mb-1">Thème de la semaine *</label>
+                            <select id="rec-theme" class="w-full px-3.5 py-2.5 bg-white border border-stone-300 rounded-xl text-sm focus:outline-none focus:border-sage-500">
+                                <option value="Viande">J1 • Viande + accompagnement</option>
+                                <option value="Italien">J2 • Recette italienne</option>
+                                <option value="Pâtes">J3 • Pâtes + sauces</option>
+                                <option value="Monde">J4 • Cuisine du monde</option>
+                                <option value="Poisson">J5 • Poisson</option>
+                                <option value="Mijoté">J6 • Plat mijoté</option>
+                                <option value="Fast food">J7 • Fast food (maison)</option>
+                                <option value="Desserts & Goûters">🧁 Desserts & Goûters</option>
+                            </select>
+                        </div>
+
+                        <div class="grid grid-cols-4 gap-2">
+                            <div>
+                                <label class="block text-xs font-semibold text-stone-700 mb-1">Parts</label>
+                                <input type="number" id="rec-servings" value="4" min="1" max="12" required class="w-full px-2.5 py-2 bg-white border border-stone-300 rounded-xl text-sm">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-stone-700 mb-1">Min</label>
+                                <input type="number" id="rec-time" value="25" min="5" required class="w-full px-2.5 py-2 bg-white border border-stone-300 rounded-xl text-sm">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-stone-700 mb-1">Budget (€)</label>
+                                <input type="number" step="0.5" id="rec-cost" value="6" min="0.5" required class="w-full px-2.5 py-2 bg-white border border-stone-300 rounded-xl text-sm">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-sky-700 mb-1">Pts WW</label>
+                                <input type="number" step="1" id="rec-ww" value="6" min="0" max="50" required class="w-full px-2.5 py-2 bg-sky-50/60 border border-sky-300 rounded-xl text-sm font-bold text-sky-800">
+                            </div>
+                        </div>
+
+                        <!-- Liste dynamique d'ingrédients -->
+                        <div>
+                            <div class="flex justify-between items-center mb-1.5">
+                                <label class="text-xs font-semibold text-stone-700">Ingrédients *</label>
+                                <button type="button" onclick="addIngredientRow()" class="text-xs font-semibold text-sage-600 hover:text-sage-700">+ Ajouter un ingrédient</button>
+                            </div>
+                            <div id="ingredients-inputs" class="space-y-2">
+                                <!-- Lignes d'ingrédients -->
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-stone-700 mb-1">Étapes de préparation</label>
+                            <textarea id="rec-steps" rows="3" placeholder="1. Faire revenir l'oignon...&#10;2. Ajouter les épices..." class="w-full px-3.5 py-2.5 bg-white border border-stone-300 rounded-xl text-sm focus:outline-none focus:border-sage-500"></textarea>
+                        </div>
+
+                        <button type="submit" class="w-full py-3 bg-sage-600 hover:bg-sage-700 text-white font-semibold rounded-2xl shadow-md transition">
+                            Enregistrer dans mes recettes
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- MODALE 3 : Planifier une recette sur un jour -->
+        <div id="modal-plan-recipe" class="fixed inset-0 bg-stone-900/50 backdrop-blur-xs z-40 hidden flex items-end sm:items-center justify-center">
+            <div class="bg-cream w-full max-w-md rounded-t-3xl sm:rounded-3xl p-5 space-y-4 shadow-2xl animate-fade">
+                <div class="flex justify-between items-center">
+                    <h3 class="font-display text-lg font-bold text-stone-900">Planifier ce repas</h3>
+                    <button onclick="closeModal('modal-plan-recipe')" class="p-1.5 rounded-full bg-stone-200/70 text-stone-600">✕</button>
+                </div>
+                <p id="plan-recipe-name" class="text-sm font-medium text-sage-700 bg-sage-100 px-3 py-2 rounded-xl"></p>
+                
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-stone-600 mb-1">Créneau thématique</label>
+                        <select id="plan-day" class="w-full p-2.5 bg-white border border-stone-300 rounded-xl text-sm font-medium">
+                            <option value="J1">J1 - Viande + accomp.</option>
+                            <option value="J2">J2 - Recette italienne</option>
+                            <option value="J3">J3 - Pâtes + sauces</option>
+                            <option value="J4">J4 - Cuisine du monde</option>
+                            <option value="J5">J5 - Poisson</option>
+                            <option value="J6">J6 - Plat mijoté</option>
+                            <option value="J7">J7 - Fast food maison</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-stone-600 mb-1">Moment</label>
+                        <select id="plan-meal" class="w-full p-2.5 bg-white border border-stone-300 rounded-xl text-sm font-medium">
+                            <option value="Soir" selected>Soir</option>
+                            <option value="Midi">Midi</option>
+                            <option value="Dessert / Goûter">🧁 Dessert / Goûter</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-stone-600 mb-1">Nombre de convives pour ce repas</label>
+                    <div class="flex items-center gap-3">
+                        <input type="number" id="plan-servings" min="1" max="12" value="2" class="w-24 p-2.5 bg-white border border-stone-300 rounded-xl text-sm font-bold text-center">
+                        <span class="text-xs text-stone-500">Les quantités de la liste de courses s'ajusteront automatiquement !</span>
+                    </div>
+                </div>
+
+                <button onclick="confirmPlanRecipe()" class="w-full py-3 bg-terracotta-500 hover:bg-terracotta-600 text-white font-semibold rounded-2xl shadow-md transition">
+                    Ajouter au planning
+                </button>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // --- STRUCTURE THÉMATIQUE SUR 7 JOURS ---
+        const WEEK_SLOTS = [
+            { code: 'J1', label: 'Jour 1', theme: 'Viande', title: 'Viande + accompagnement', icon: '🥩' },
+            { code: 'J2', label: 'Jour 2', theme: 'Italien', title: 'Recette italienne', icon: '🇮🇹' },
+            { code: 'J3', label: 'Jour 3', theme: 'Pâtes', title: 'Pâtes + sauces', icon: '🍝' },
+            { code: 'J4', label: 'Jour 4', theme: 'Monde', title: 'Cuisine du monde', icon: '🌍' },
+            { code: 'J5', label: 'Jour 5', theme: 'Poisson', title: 'Poisson', icon: '🐟' },
+            { code: 'J6', label: 'Jour 6', theme: 'Mijoté', title: 'Plat mijoté', icon: '🍲' },
+            { code: 'J7', label: 'Jour 7', theme: 'Fast food', title: 'Fast food (maison)', icon: '🍔' }
+        ];
+
+        const THEMES = ['Tous', 'Viande', 'Italien', 'Pâtes', 'Monde', 'Poisson', 'Mijoté', 'Fast food', 'Desserts & Goûters'];
+        const WW_FILTERS = [
+            { id: 'all', label: 'Tous les points', max: Infinity },
+            { id: 'le5', label: '≤ 5 pts WW', max: 5 },
+            { id: 'le8', label: '≤ 8 pts WW', max: 8 },
+            { id: 'le10', label: '≤ 10 pts WW', max: 10 }
+        ];
+
+        // --- DONNÉES INITIALES (RECETTES ÉCONOMIQUES + POINTS WW + DESSERTS/GOÛTERS) ---
+        const DEFAULT_RECIPES = [
+            {
+                id: 'rec-1',
+                title: 'Poulet rôti & pommes de terre grenailles',
+                emoji: '🍗',
+                theme: 'Viande',
+                time: 45,
+                cost: 8.5,
+                servings: 4,
+                wwPoints: 6,
+                tag: 'J1 • Viande + accomp.',
+                ingredients: [
+                    { name: 'Cuisses de poulet', qty: 4, unit: 'pièce', aisle: 'Boucherie & Poissonnerie' },
+                    { name: 'Pommes de terre', qty: 600, unit: 'g', aisle: 'Fruits & Légumes' },
+                    { name: 'Carottes', qty: 300, unit: 'g', aisle: 'Fruits & Légumes' },
+                    { name: 'Oignon jaune', qty: 1, unit: 'pièce', aisle: 'Fruits & Légumes' },
+                    { name: 'Ail', qty: 3, unit: 'gousses', aisle: 'Fruits & Légumes' }
+                ],
+                steps: "1. Préchauffer le four à 200°C. Couper les pommes de terre, carottes et l'oignon en morceaux.\n2. Disposer sur une plaque avec les cuisses de poulet, un filet d'huile d'olive, sel, poivre et herbes.\n3. Enfourner 40 min en retournant les légumes à mi-cuisson."
+            },
+            {
+                id: 'rec-2',
+                title: 'Saucisses de Toulouse & purée maison',
+                emoji: '🌭',
+                theme: 'Viande',
+                time: 30,
+                cost: 7.5,
+                servings: 4,
+                wwPoints: 11,
+                tag: 'J1 • Viande + accomp.',
+                ingredients: [
+                    { name: 'Saucisses de Toulouse', qty: 4, unit: 'pièce', aisle: 'Boucherie & Poissonnerie' },
+                    { name: 'Pommes de terre', qty: 800, unit: 'g', aisle: 'Fruits & Légumes' },
+                    { name: 'Lait demi-écrémé', qty: 15, unit: 'cl', aisle: 'Crèmerie' },
+                    { name: 'Beurre', qty: 30, unit: 'g', aisle: 'Crèmerie' }
+                ],
+                steps: "1. Éplucher et cuire les pommes de terre 20 min dans l'eau bouillante salée.\n2. Piquer les saucisses et les faire dorer à la poêle 15 min à feu moyen.\n3. Écraser les pommes de terre avec le beurre et le lait chaud, assaisonner de muscade."
+            },
+            {
+                id: 'rec-3',
+                title: 'Risotto crémeux aux champignons',
+                emoji: '🍄',
+                theme: 'Italien',
+                time: 30,
+                cost: 6.5,
+                servings: 4,
+                wwPoints: 8,
+                tag: 'J2 • Recette italienne',
+                ingredients: [
+                    { name: 'Riz arborio (risotto)', qty: 300, unit: 'g', aisle: 'Épicerie & Pâtes' },
+                    { name: 'Champignons de Paris', qty: 350, unit: 'g', aisle: 'Fruits & Légumes' },
+                    { name: 'Oignon jaune', qty: 1, unit: 'pièce', aisle: 'Fruits & Légumes' },
+                    { name: 'Parmesan râpé', qty: 60, unit: 'g', aisle: 'Crèmerie' },
+                    { name: 'Bouillon de légumes (cube)', qty: 2, unit: 'pièce', aisle: 'Épicerie & Pâtes' }
+                ],
+                steps: "1. Faire revenir l'oignon émincé et les champignons dans un filet d'huile.\n2. Ajouter le riz et remuer 2 min jusqu'à ce qu'il devienne translucide.\n3. Verser le bouillon chaud louche par louche pendant 18 min. Terminer avec le parmesan."
+            },
+            {
+                id: 'rec-4',
+                title: 'Polenta crémeuse gratinée tomate & mozzarella',
+                emoji: '🧀',
+                theme: 'Italien',
+                time: 25,
+                cost: 5.5,
+                servings: 4,
+                wwPoints: 7,
+                tag: 'J2 • Recette italienne',
+                ingredients: [
+                    { name: 'Polenta fine', qty: 250, unit: 'g', aisle: 'Épicerie & Pâtes' },
+                    { name: 'Coulis de tomate', qty: 400, unit: 'g', aisle: 'Épicerie & Pâtes' },
+                    { name: 'Mozzarella', qty: 125, unit: 'g', aisle: 'Crèmerie' },
+                    { name: 'Ail', qty: 2, unit: 'gousses', aisle: 'Fruits & Légumes' }
+                ],
+                steps: "1. Cuire la polenta dans 1L d'eau bouillante salée pendant 5 min en remuant.\n2. Étaler dans un plat à gratin, napper de coulis de tomate aillé et d'origan.\n3. Ajouter la mozzarella en tranches et gratiner 12 min sous le gril."
+            },
+            {
+                id: 'rec-5',
+                title: 'Pâtes alla Norma (aubergines & ricotta)',
+                emoji: '🍆',
+                theme: 'Pâtes',
+                time: 25,
+                cost: 6.0,
+                servings: 4,
+                wwPoints: 8,
+                tag: 'J3 • Pâtes + sauces',
+                ingredients: [
+                    { name: 'Pâtes (penne ou rigatoni)', qty: 400, unit: 'g', aisle: 'Épicerie & Pâtes' },
+                    { name: 'Aubergines', qty: 2, unit: 'pièce', aisle: 'Fruits & Légumes' },
+                    { name: 'Tomates concassées', qty: 400, unit: 'g', aisle: 'Épicerie & Pâtes' },
+                    { name: 'Ricotta', qty: 150, unit: 'g', aisle: 'Crèmerie' },
+                    { name: 'Ail', qty: 2, unit: 'gousses', aisle: 'Fruits & Légumes' }
+                ],
+                steps: "1. Couper les aubergines en dés et les faire dorer à la poêle avec l'ail et de l'huile d'olive.\n2. Ajouter les tomates concassées et laisser mijoter 10 min.\n3. Mélanger aux pâtes cuites al dente et servir avec une cuillère de ricotta fraîche."
+            },
+            {
+                id: 'rec-6',
+                title: 'Spaghetti sauce crémeuse champignons & lardons',
+                emoji: '🍝',
+                theme: 'Pâtes',
+                time: 20,
+                cost: 5.5,
+                servings: 4,
+                wwPoints: 10,
+                tag: 'J3 • Pâtes + sauces',
+                ingredients: [
+                    { name: 'Spaghetti', qty: 400, unit: 'g', aisle: 'Épicerie & Pâtes' },
+                    { name: 'Champignons de Paris', qty: 250, unit: 'g', aisle: 'Fruits & Légumes' },
+                    { name: 'Lardons fumés', qty: 150, unit: 'g', aisle: 'Boucherie & Poissonnerie' },
+                    { name: 'Crème liquide légère', qty: 20, unit: 'cl', aisle: 'Crèmerie' },
+                    { name: 'Oignon jaune', qty: 1, unit: 'pièce', aisle: 'Fruits & Légumes' }
+                ],
+                steps: "1. Cuire les spaghetti dans l'eau bouillante salée.\n2. Faire dorer les lardons, l'oignon et les champignons émincés à la poêle.\n3. Verser la crème, poivrer généreusement et mélanger avec les pâtes égouttées."
+            },
+            {
+                id: 'rec-7',
+                title: 'Dhal de lentilles corail & riz basmati',
+                emoji: '🍛',
+                theme: 'Monde',
+                time: 25,
+                cost: 4.5,
+                servings: 4,
+                wwPoints: 5,
+                tag: 'J4 • Cuisine du monde',
+                ingredients: [
+                    { name: 'Lentilles corail', qty: 250, unit: 'g', aisle: 'Épicerie & Pâtes' },
+                    { name: 'Lait de coco', qty: 200, unit: 'ml', aisle: 'Épicerie & Pâtes' },
+                    { name: 'Tomates concassées', qty: 400, unit: 'g', aisle: 'Épicerie & Pâtes' },
+                    { name: 'Oignon jaune', qty: 1, unit: 'pièce', aisle: 'Fruits & Légumes' },
+                    { name: 'Riz basmati', qty: 250, unit: 'g', aisle: 'Épicerie & Pâtes' }
+                ],
+                steps: "1. Faire revenir l'oignon émincé avec 1 c.à.s de curry.\n2. Ajouter les lentilles corail rincées, les tomates concassées et le lait de coco.\n3. Mijoter 15 min à feu doux. Servir avec le riz basmati."
+            },
+            {
+                id: 'rec-8',
+                title: 'Filet de colin sauce citronnée & riz',
+                emoji: '🐟',
+                theme: 'Poisson',
+                time: 20,
+                cost: 8.0,
+                servings: 4,
+                wwPoints: 4,
+                tag: 'J5 • Poisson',
+                ingredients: [
+                    { name: 'Filets de colin (ou cabillaud)', qty: 4, unit: 'pièce', aisle: 'Boucherie & Poissonnerie' },
+                    { name: 'Riz basmati', qty: 250, unit: 'g', aisle: 'Épicerie & Pâtes' },
+                    { name: 'Citron jaune', qty: 1, unit: 'pièce', aisle: 'Fruits & Légumes' },
+                    { name: 'Crème liquide légère', qty: 20, unit: 'cl', aisle: 'Crèmerie' },
+                    { name: 'Courgettes', qty: 2, unit: 'pièce', aisle: 'Fruits & Légumes' }
+                ],
+                steps: "1. Cuire le riz et les courgettes coupées en rondelles à la vapeur ou à la poêle.\n2. Saisir les filets de poisson 3 min de chaque côté dans une noisette de beurre.\n3. Déglacer avec le jus du citron et la crème fraîche, laisser épaissir 2 min."
+            },
+            {
+                id: 'rec-9',
+                title: 'Chili sin carne mijoté aux haricots rouges',
+                emoji: '🍲',
+                theme: 'Mijoté',
+                time: 35,
+                cost: 5.0,
+                servings: 4,
+                wwPoints: 2,
+                tag: 'J6 • Plat mijoté',
+                ingredients: [
+                    { name: 'Haricots rouges (boîte)', qty: 400, unit: 'g', aisle: 'Épicerie & Pâtes' },
+                    { name: 'Tomates concassées', qty: 400, unit: 'g', aisle: 'Épicerie & Pâtes' },
+                    { name: 'Maïs doux (boîte)', qty: 150, unit: 'g', aisle: 'Épicerie & Pâtes' },
+                    { name: 'Poivron rouge', qty: 1, unit: 'pièce', aisle: 'Fruits & Légumes' },
+                    { name: 'Oignon jaune', qty: 1, unit: 'pièce', aisle: 'Fruits & Légumes' }
+                ],
+                steps: "1. Faire revenir l'oignon et le poivron en dés avec du cumin et du paprika.\n2. Ajouter les tomates concassées, les haricots rouges rincés et le maïs.\n3. Laisser mijoter à couvert 20 min à feu doux pour concentrer les saveurs."
+            },
+            {
+                id: 'rec-10',
+                title: 'Wraps croustillants poulet, crudités & sauce yaourt',
+                emoji: '🌯',
+                theme: 'Fast food',
+                time: 20,
+                cost: 7.0,
+                servings: 4,
+                wwPoints: 6,
+                tag: 'J7 • Fast food maison',
+                ingredients: [
+                    { name: 'Galettes tortillas (blé)', qty: 4, unit: 'pièce', aisle: 'Épicerie & Pâtes' },
+                    { name: 'Filets de poulet', qty: 300, unit: 'g', aisle: 'Boucherie & Poissonnerie' },
+                    { name: 'Salade verte', qty: 1, unit: 'pièce', aisle: 'Fruits & Légumes' },
+                    { name: 'Tomates', qty: 2, unit: 'pièce', aisle: 'Fruits & Légumes' },
+                    { name: 'Yaourt grec', qty: 150, unit: 'g', aisle: 'Crèmerie' }
+                ],
+                steps: "1. Couper le poulet en aiguillettes et le faire dorer à la poêle avec du paprika.\n2. Préparer la sauce en mélangeant le yaourt grec, un filet de citron, sel et herbes.\n3. Garnir les tortillas de sauce, salade, tomates et poulet chaud, rouler et griller 1 min à la poêle."
+            },
+            {
+                id: 'rec-11',
+                title: 'Pancakes express à la banane & flocons d’avoine',
+                emoji: '🥞',
+                theme: 'Desserts & Goûters',
+                time: 15,
+                cost: 2.5,
+                servings: 2,
+                wwPoints: 3,
+                tag: '🧁 Desserts & Goûters',
+                ingredients: [
+                    { name: 'Bananes bien mûres', qty: 2, unit: 'pièce', aisle: 'Fruits & Légumes' },
+                    { name: 'Œufs', qty: 2, unit: 'pièce', aisle: 'Crèmerie' },
+                    { name: 'Flocons d’avoine', qty: 80, unit: 'g', aisle: 'Épicerie & Pâtes' }
+                ],
+                steps: "1. Écraser les bananes à la fourchette dans un bol.\n2. Ajouter les œufs battus et les flocons d'avoine (avec une pincée de cannelle ou vanille).\n3. Cuire des petits tas 2 min par face dans une poêle antiadhésive chaude."
+            },
+            {
+                id: 'rec-12',
+                title: 'Gâteau invisible aux pommes léger',
+                emoji: '🍏',
+                theme: 'Desserts & Goûters',
+                time: 45,
+                cost: 4.0,
+                servings: 6,
+                wwPoints: 3,
+                tag: '🧁 Desserts & Goûters',
+                ingredients: [
+                    { name: 'Pommes', qty: 4, unit: 'pièce', aisle: 'Fruits & Légumes' },
+                    { name: 'Œufs', qty: 2, unit: 'pièce', aisle: 'Crèmerie' },
+                    { name: 'Farine de blé', qty: 70, unit: 'g', aisle: 'Épicerie & Pâtes' },
+                    { name: 'Lait demi-écrémé', qty: 10, unit: 'cl', aisle: 'Crèmerie' },
+                    { name: 'Sucre roux', qty: 30, unit: 'g', aisle: 'Épicerie & Pâtes' }
+                ],
+                steps: "1. Fouetter les œufs avec le sucre, puis incorporer la farine, la levure et le lait.\n2. Peler et couper les pommes en lamelles très fines, les mélanger à la pâte.\n3. Verser dans un moule à cake et cuire 35 min à 180°C."
+            }
+        ];
+
+        // --- ÉTAT DE L'APPLICATION ---
+        let state = {
+            currentTab: 'week', // Ouverture directe sur le planning J1-J7
+            selectedThemeFilter: 'Tous',
+            selectedWwFilter: 'all',
+            recipes: [],
+            mealPlan: [], // { id, day ('J1'..'J7'), meal, recipeId, servings }
+            manualItems: [], // { id, name, aisle, checked }
+            checkedAutoItems: {}, // { key: boolean }
+            defaultServings: 2,
+            selectedRecipeForPlan: null
+        };
+
+        // --- INITIALISATION & LOCALSTORAGE ---
+        let memoryFallbackState = null;
+
+        function updateStorageIndicator(statusText = null) {
+            const el = document.getElementById('storage-status');
+            if (!el) return;
+            if (statusText) {
+                el.textContent = statusText;
+                return;
+            }
+            const count = Array.isArray(state.recipes) ? state.recipes.length : 0;
+            el.textContent = `💾 ${count} recette(s) enregistrée(s) sur cet appareil`;
+        }
+
+        function loadState() {
+            let loaded = null;
+            try {
+                const saved = localStorage.getItem('saveurs_budget_app_v3');
+                if (saved) {
+                    loaded = JSON.parse(saved);
+                }
+            } catch (err) {
+                loaded = memoryFallbackState;
+            }
+
+            if (loaded && Array.isArray(loaded.recipes)) {
+                state = { ...state, ...loaded };
+                memoryFallbackState = JSON.parse(JSON.stringify(state));
+            } else {
+                initDefaultWeek();
+            }
+            updateStorageIndicator();
+        }
+
+        function initDefaultWeek() {
+            state.recipes = JSON.parse(JSON.stringify(DEFAULT_RECIPES));
+            // Pré-remplir 3 jours exemples + 1 goûter pour montrer le fonctionnement tout de suite
+            state.mealPlan = [
+                { id: 'mp-1', day: 'J1', meal: 'Soir', recipeId: 'rec-1', servings: 2 },
+                { id: 'mp-2', day: 'J3', meal: 'Soir', recipeId: 'rec-5', servings: 2 },
+                { id: 'mp-3', day: 'J7', meal: 'Soir', recipeId: 'rec-10', servings: 2 },
+                { id: 'mp-4', day: 'J3', meal: 'Dessert / Goûter', recipeId: 'rec-11', servings: 2 }
+            ];
+            state.manualItems = [];
+            state.checkedAutoItems = {};
+            saveState();
+        }
+
+        function saveState() {
+            memoryFallbackState = JSON.parse(JSON.stringify(state));
+            try {
+                localStorage.setItem('saveurs_budget_app_v3', JSON.stringify(state));
+                updateStorageIndicator();
+            } catch (err) {
+                updateStorageIndicator('⚠️ Mémoire session active (pense à Exporter JSON)');
+            }
+            updateBadges();
+        }
+
+        // --- NAVIGATION, BADGES, MODALES & SAUVEGARDE ---
+        let toastTimeout = null;
+
+        function showToast(msg, icon = '✅') {
+            const toast = document.getElementById('toast');
+            const iconEl = document.getElementById('toast-icon');
+            const msgEl = document.getElementById('toast-msg');
+            if (!toast || !iconEl || !msgEl) return;
+
+            iconEl.textContent = icon;
+            msgEl.textContent = msg;
+            toast.classList.remove('hidden');
+
+            if (toastTimeout) clearTimeout(toastTimeout);
+            toastTimeout = setTimeout(() => {
+                toast.classList.add('hidden');
+            }, 2600);
+        }
+
+        function closeModal(modalId) {
+            const modal = document.getElementById(modalId);
+            if (modal) modal.classList.add('hidden');
+        }
+
+        function switchTab(tabName) {
+            state.currentTab = tabName;
+            saveState();
+            render();
+        }
+
+        function updateBadges() {
+            const weekBadge = document.getElementById('week-badge');
+            if (weekBadge) {
+                const mealCount = Array.isArray(state.mealPlan) ? state.mealPlan.length : 0;
+                weekBadge.textContent = mealCount;
+                weekBadge.classList.toggle('hidden', mealCount === 0);
+            }
+
+            const shopBadge = document.getElementById('shop-badge');
+            if (shopBadge) {
+                const autoCount = typeof computeShoppingList === 'function' ? computeShoppingList().length : 0;
+                const manualCount = Array.isArray(state.manualItems) ? state.manualItems.length : 0;
+                const totalShop = autoCount + manualCount;
+                shopBadge.textContent = totalShop;
+                shopBadge.classList.toggle('hidden', totalShop === 0);
+            }
+        }
+
+        function updateNavStyles() {
+            const tabs = ['recipes', 'week', 'shopping'];
+            tabs.forEach(tab => {
+                const btn = document.getElementById(`nav-${tab}`);
+                if (!btn) return;
+                if (state.currentTab === tab) {
+                    btn.classList.add('bg-sage-100', 'text-sage-700');
+                    btn.classList.remove('text-stone-500', 'hover:bg-stone-100');
+                } else {
+                    btn.classList.remove('bg-sage-100', 'text-sage-700');
+                    btn.classList.add('text-stone-500', 'hover:bg-stone-100');
+                }
+            });
+        }
+
+        function render() {
+            updateNavStyles();
+            updateBadges();
+            const container = document.getElementById('app-content');
+            if (!container) return;
+
+            if (state.currentTab === 'recipes') {
+                container.innerHTML = renderRecipesTab();
+            } else if (state.currentTab === 'shopping') {
+                container.innerHTML = renderShoppingTab();
+            } else {
+                container.innerHTML = renderWeekTab();
+            }
+        }
+
+        function resetDemoData() {
+            initDefaultWeek();
+            state.selectedThemeFilter = 'Tous';
+            state.selectedWwFilter = 'all';
+            render();
+            showToast('Données de démonstration restaurées', '🔄');
+        }
+
+        function exportBackupData() {
+            try {
+                const dataToExport = {
+                    version: 'v3',
+                    exportedAt: new Date().toISOString(),
+                    recipes: state.recipes,
+                    mealPlan: state.mealPlan,
+                    manualItems: state.manualItems,
+                    checkedAutoItems: state.checkedAutoItems,
+                    defaultServings: state.defaultServings
+                };
+                const blob = new Blob([JSON.stringify(dataToExport, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                const dateStr = new Date().toISOString().slice(0, 10);
+                a.href = url;
+                a.download = `saveurs-budget-sauvegarde-${dateStr}.json`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                showToast('Sauvegarde JSON téléchargée !', '💾');
+            } catch (err) {
+                showToast('Erreur lors de l’export JSON', '⚠️');
+            }
+        }
+
+        function importBackupData(input) {
+            const file = input.files && input.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const parsed = JSON.parse(e.target.result);
+                    if (!parsed || !Array.isArray(parsed.recipes)) {
+                        showToast('Fichier de sauvegarde invalide', '⚠️');
+                        return;
+                    }
+                    state.recipes = parsed.recipes;
+                    state.mealPlan = Array.isArray(parsed.mealPlan) ? parsed.mealPlan : [];
+                    state.manualItems = Array.isArray(parsed.manualItems) ? parsed.manualItems : [];
+                    state.checkedAutoItems = parsed.checkedAutoItems && typeof parsed.checkedAutoItems === 'object' ? parsed.checkedAutoItems : {};
+                    if (typeof parsed.defaultServings === 'number' && parsed.defaultServings >= 1) {
+                        state.defaultServings = parsed.defaultServings;
+                    }
+                    saveState();
+                    render();
+                    showToast('Sauvegarde restaurée avec succès !', '📂');
+                } catch (err) {
+                    showToast('Impossible de lire le fichier JSON', '⚠️');
+                } finally {
+                    input.value = '';
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        // ==========================================
+        // ONGLET 1 : MES RECETTES (AVEC FILTRES THÈMES)
+        // ==========================================
+        function setThemeFilter(theme) {
+            state.selectedThemeFilter = theme;
+            render();
+        }
+
+        function setWwFilter(wwId) {
+            state.selectedWwFilter = wwId;
+            render();
+        }
+
+        function renderRecipesTab() {
+            const wwRule = WW_FILTERS.find(w => w.id === state.selectedWwFilter) || WW_FILTERS[0];
+            const filteredRecipes = state.recipes.filter(r => {
+                const matchTheme = state.selectedThemeFilter === 'Tous' || r.theme === state.selectedThemeFilter;
+                const pts = typeof r.wwPoints === 'number' ? r.wwPoints : Number(r.wwPoints);
+                const matchWw = wwRule.max === Infinity || (!isNaN(pts) && pts <= wwRule.max);
+                return matchTheme && matchWw;
+            });
+
+            const filtersHtml = THEMES.map(theme => {
+                const active = state.selectedThemeFilter === theme;
+                return `
+                    <button onclick="setThemeFilter('${theme}')" 
+                        class="whitespace-nowrap px-3.5 py-1.5 rounded-full text-xs font-semibold transition ${active ? 'bg-sage-600 text-white shadow-xs' : 'bg-white text-stone-600 border border-stone-200 hover:bg-stone-50'}">
+                        ${theme}
+                    </button>
+                `;
+            }).join('');
+
+            const wwFiltersHtml = WW_FILTERS.map(wf => {
+                const active = state.selectedWwFilter === wf.id;
+                return `
+                    <button onclick="setWwFilter('${wf.id}')" 
+                        class="whitespace-nowrap px-3 py-1 rounded-full text-[11px] font-bold transition ${active ? 'bg-sky-600 text-white shadow-xs' : 'bg-sky-50 text-sky-800 border border-sky-200/80 hover:bg-sky-100'}">
+                        ${wf.label}
+                    </button>
+                `;
+            }).join('');
+
+            const cardsHtml = filteredRecipes.length === 0
+                ? `<div class="bg-white rounded-3xl p-8 text-center border border-stone-200/70 text-xs text-stone-500">Aucune recette ne correspond à ce filtre pour le moment.</div>`
+                : filteredRecipes.map(rec => {
+                    const costPerServing = (rec.cost / rec.servings).toFixed(2).replace('.', ',');
+                    const wwPts = rec.wwPoints !== undefined ? rec.wwPoints : '?';
+                    return `
+                    <div class="bg-white rounded-3xl p-4 shadow-xs border border-stone-200/70 transition hover:shadow-md animate-fade">
+                        <div class="flex items-start justify-between gap-3">
+                            <div onclick="openRecipeDetail('${rec.id}')" class="flex-1 cursor-pointer">
+                                <div class="flex flex-wrap items-center gap-1.5 mb-1">
+                                    <span class="text-2xl">${rec.emoji || '🍽️'}</span>
+                                    <span class="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-sage-50 text-sage-700 border border-sage-200/60">
+                                        ${rec.tag || rec.theme || 'Recette maison'}
+                                    </span>
+                                    <span class="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-sky-100 text-sky-800 border border-sky-200">
+                                        WW : ${wwPts} pts/part
+                                    </span>
+                                </div>
+                                <h3 class="font-display text-lg font-bold text-stone-900 leading-snug">${rec.title}</h3>
+                                
+                                <div class="flex flex-wrap items-center gap-3 mt-2.5 text-xs text-stone-500 font-medium">
+                                    <span class="flex items-center gap-1">⏱️ ${rec.time} min</span>
+                                    <span class="flex items-center gap-1">👥 ${rec.servings} parts</span>
+                                    <span class="flex items-center gap-1 text-terracotta-600 font-semibold">💶 ~${costPerServing} €/pers</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mt-3.5 pt-3 border-t border-stone-100 flex items-center justify-between gap-2">
+                            <button onclick="openRecipeDetail('${rec.id}')" class="text-xs font-semibold text-stone-600 hover:text-stone-900 py-2 px-3 rounded-xl bg-stone-100/80 transition">
+                                Voir la fiche
+                            </button>
+                            <button onclick="openPlanModal('${rec.id}')" class="flex-1 py-2 px-3 bg-sage-600 hover:bg-sage-700 text-white text-xs font-semibold rounded-xl shadow-xs transition flex items-center justify-center gap-1.5">
+                                <span>+ Planifier</span>
+                            </button>
+                        </div>
+                    </div>
+                    `;
+                }).join('');
+
+            return `
+                <div class="flex items-center justify-between mb-1">
+                    <div>
+                        <h2 class="font-display text-xl font-bold text-stone-900">Carnet de Recettes</h2>
+                        <p class="text-xs text-stone-500">${filteredRecipes.length} recette(s) affichée(s)</p>
+                    </div>
+                    <button onclick="openAddRecipeModal()" class="py-2.5 px-4 bg-terracotta-500 hover:bg-terracotta-600 text-white text-xs font-bold rounded-2xl shadow-sm transition flex items-center gap-1.5">
+                        <span class="text-base leading-none">+</span> Ajouter
+                    </button>
+                </div>
+
+                <!-- Barre de filtres par thème -->
+                <div class="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+                    ${filtersHtml}
+                </div>
+
+                <!-- Barre de filtres rapides Points WW -->
+                <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1">
+                    <span class="text-[11px] font-semibold text-stone-500 shrink-0 mr-0.5">WW :</span>
+                    ${wwFiltersHtml}
+                </div>
+
+                <div class="space-y-3">
+                    ${cardsHtml}
+                </div>
+            `;
+        }
+
+        function openRecipeDetail(id) {
+            const rec = state.recipes.find(r => r.id === id);
+            if (!rec) return;
+
+            const costPerServing = (rec.cost / rec.servings).toFixed(2).replace('.', ',');
+            const wwPts = rec.wwPoints !== undefined ? rec.wwPoints : '?';
+            const ingredientsHtml = rec.ingredients.map(ing => `
+                <li class="flex justify-between items-center py-2 border-b border-stone-100 text-sm">
+                    <span class="text-stone-700">${ing.name}</span>
+                    <span class="font-semibold text-stone-900 bg-sand px-2.5 py-0.5 rounded-lg">${ing.qty} ${ing.unit}</span>
+                </li>
+            `).join('');
+
+            const stepsHtml = (rec.steps || "Aucune étape renseignée.")
+                .split('\n')
+                .filter(s => s.trim())
+                .map(step => `<p class="text-sm text-stone-700 leading-relaxed bg-white p-3 rounded-2xl border border-stone-100">${step}</p>`)
+                .join('');
+
+            document.getElementById('recipe-detail-body').innerHTML = `
+                <div class="flex justify-between items-start">
+                    <div class="flex items-center gap-2.5">
+                        <span class="text-3xl">${rec.emoji || '🍽️'}</span>
+                        <div>
+                            <span class="text-[11px] font-bold uppercase tracking-wider text-sage-600">${rec.tag || rec.theme || 'Recette maison'}</span>
+                            <h2 class="font-display text-xl font-bold text-stone-900 leading-tight">${rec.title}</h2>
+                        </div>
+                    </div>
+                    <button onclick="closeModal('modal-recipe-detail')" class="p-2 rounded-full bg-stone-200/70 text-stone-600 hover:text-stone-900">✕</button>
+                </div>
+
+                <div class="grid grid-cols-4 gap-1.5 bg-sand p-3 rounded-2xl text-center">
+                    <div>
+                        <span class="block text-[10px] text-stone-500">Temps</span>
+                        <span class="font-bold text-xs text-stone-800">⏱️ ${rec.time}m</span>
+                    </div>
+                    <div class="border-l border-stone-300/60">
+                        <span class="block text-[10px] text-stone-500">Parts</span>
+                        <span class="font-bold text-xs text-stone-800">👥 ${rec.servings}</span>
+                    </div>
+                    <div class="border-x border-stone-300/60">
+                        <span class="block text-[10px] text-stone-500">Budget/p</span>
+                        <span class="font-bold text-xs text-terracotta-600">~${costPerServing}€</span>
+                    </div>
+                    <div>
+                        <span class="block text-[10px] text-sky-700 font-semibold">Points WW</span>
+                        <span class="font-bold text-xs text-sky-800">${wwPts} pts</span>
+                    </div>
+                </div>
+
+                <div>
+                    <h4 class="font-display font-bold text-stone-900 text-sm mb-2">Ingrédients (pour ${rec.servings} parts)</h4>
+                    <ul class="bg-white rounded-2xl px-3.5 border border-stone-200/60">
+                        ${ingredientsHtml}
+                    </ul>
+                </div>
+
+                <div>
+                    <h4 class="font-display font-bold text-stone-900 text-sm mb-2">Préparation</h4>
+                    <div class="space-y-2">${stepsHtml}</div>
+                </div>
+
+                <div class="flex gap-2 pt-2">
+                    <button onclick="deleteRecipe('${rec.id}')" class="py-3 px-4 bg-red-50 text-red-600 hover:bg-red-100 text-xs font-bold rounded-2xl transition">
+                        Supprimer
+                    </button>
+                    <button onclick="closeModal('modal-recipe-detail'); openPlanModal('${rec.id}')" class="flex-1 py-3 bg-sage-600 hover:bg-sage-700 text-white text-sm font-semibold rounded-2xl shadow-md transition">
+                        + Planifier cette semaine
+                    </button>
+                </div>
+            `;
+            document.getElementById('modal-recipe-detail').classList.remove('hidden');
+        }
+
+        function deleteRecipe(id) {
+            state.recipes = state.recipes.filter(r => r.id !== id);
+            state.mealPlan = state.mealPlan.filter(m => m.recipeId !== id);
+            saveState();
+            closeModal('modal-recipe-detail');
+            render();
+            showToast('Recette supprimée', '🗑️');
+        }
+
+        function openAddRecipeModal() {
+            document.getElementById('add-recipe-form').reset();
+            clearSocialImport();
+            const container = document.getElementById('ingredients-inputs');
+            container.innerHTML = '';
+            addIngredientRow();
+            addIngredientRow();
+            document.getElementById('modal-add-recipe').classList.remove('hidden');
+        }
+
+        function handleVideoFileSelect(input) {
+            const label = document.getElementById('video-file-label');
+            const clearBtn = document.getElementById('clear-social-btn');
+            if (input.files && input.files[0]) {
+                const file = input.files[0];
+                const sizeMb = (file.size / (1024 * 1024)).toFixed(1);
+                label.textContent = `${file.name} (${sizeMb} Mo)`;
+                label.classList.add('text-terracotta-600', 'font-semibold');
+                clearBtn.classList.remove('hidden');
+                if (file.size > 18 * 1024 * 1024) {
+                    showToast('Vidéo > 18 Mo : compression auto activée', '⚡');
+                }
+            }
+        }
+
+        function clearSocialImport() {
+            const textEl = document.getElementById('social-raw-text');
+            const fileEl = document.getElementById('social-video-file');
+            const label = document.getElementById('video-file-label');
+            const clearBtn = document.getElementById('clear-social-btn');
+            if (textEl) textEl.value = '';
+            if (fileEl) fileEl.value = '';
+            if (label) {
+                label.textContent = 'Importer une vidéo (MP4/MOV)';
+                label.classList.remove('text-terracotta-600', 'font-semibold');
+            }
+            if (clearBtn) clearBtn.classList.add('hidden');
+        }
+
+        function fillDemoSocialText() {
+            document.getElementById('social-raw-text').value = "Recette TikTok viral 🔥 Pâtes crémeuses au thon et citron en 15 min ! Il vous faut : 350g de penne, 2 boîtes de thon au naturel, 20cl de crème liquide, 1 citron jaune, 1 gousse d'ail et du persil. On cuit les pâtes, on mélange le thon émietté avec la crème, le jus et le zeste de citron à la poêle 3 min, on ajoute les pâtes et hop c'est prêt ! #recettefacile #pascher";
+            document.getElementById('clear-social-btn').classList.remove('hidden');
+        }
+
+        function fileToBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result.split(',')[1]);
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+        }
+
+        function arrayBufferToBase64(buffer) {
+            let binary = '';
+            const bytes = new Uint8Array(buffer);
+            for (let i = 0; i < bytes.byteLength; i++) {
+                binary += String.fromCharCode(bytes[i]);
+            }
+            return btoa(binary);
+        }
+
+        function encodeMonoWav(float32Samples, sampleRate) {
+            const buffer = new ArrayBuffer(44 + float32Samples.length * 2);
+            const view = new DataView(buffer);
+            const writeStr = (offset, str) => {
+                for (let i = 0; i < str.length; i++) view.setUint8(offset + i, str.charCodeAt(i));
+            };
+            writeStr(0, 'RIFF');
+            view.setUint32(4, 36 + float32Samples.length * 2, true);
+            writeStr(8, 'WAVE');
+            writeStr(12, 'fmt ');
+            view.setUint32(16, 16, true);
+            view.setUint16(20, 1, true);
+            view.setUint16(22, 1, true);
+            view.setUint32(24, sampleRate, true);
+            view.setUint32(28, sampleRate * 2, true);
+            view.setUint16(32, 2, true);
+            view.setUint16(34, 16, true);
+            writeStr(36, 'data');
+            view.setUint32(40, float32Samples.length * 2, true);
+
+            let offset = 44;
+            for (let i = 0; i < float32Samples.length; i++, offset += 2) {
+                const s = Math.max(-1, Math.min(1, float32Samples[i]));
+                view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
+            }
+            return buffer;
+        }
+
+        // Compresse une vidéo > 18 Mo en extrayant sa piste audio (8kHz) + 8 captures d'écran clés
+        async function compressLargeVideo(file) {
+            const mediaParts = [];
+
+            // 1. Extraction et ré-échantillonnage de la piste audio en WAV 8kHz mono (très léger : ~900 Ko/min)
+            try {
+                const arrayBuffer = await file.arrayBuffer();
+                const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                const audioCtx = new AudioCtx();
+                const decoded = await audioCtx.decodeAudioData(arrayBuffer);
+                const targetRate = 8000;
+                const maxSeconds = Math.min(decoded.duration, 180); // Max 3 min
+                const frameCount = Math.floor(maxSeconds * targetRate);
+                const offlineCtx = new OfflineAudioContext(1, frameCount, targetRate);
+                const source = offlineCtx.createBufferSource();
+                source.buffer = decoded;
+                source.connect(offlineCtx.destination);
+                source.start();
+                const rendered = await offlineCtx.startRendering();
+                const wavBuffer = encodeMonoWav(rendered.getChannelData(0), targetRate);
+                mediaParts.push({
+                    inlineData: {
+                        mimeType: 'audio/wav',
+                        data: arrayBufferToBase64(wavBuffer)
+                    }
+                });
+                audioCtx.close();
+            } catch (e) {
+                // Si la vidéo n'a pas de piste audio, on continue avec les images
+            }
+
+            // 2. Extraction de 8 images clés réparties sur la vidéo pour lire les textes incrustés
+            const videoUrl = URL.createObjectURL(file);
+            try {
+                const video = document.createElement('video');
+                video.src = videoUrl;
+                video.muted = true;
+                video.playsInline = true;
+                await new Promise((res, rej) => {
+                    video.onloadedmetadata = res;
+                    video.onerror = rej;
+                });
+
+                const canvas = document.createElement('canvas');
+                const scale = Math.min(1, 512 / Math.max(video.videoWidth || 512, video.videoHeight || 512));
+                canvas.width = Math.round((video.videoWidth || 360) * scale);
+                canvas.height = Math.round((video.videoHeight || 640) * scale);
+                const ctx = canvas.getContext('2d');
+
+                const duration = video.duration || 10;
+                const frameCount = 8;
+                for (let i = 0; i < frameCount; i++) {
+                    const targetTime = (duration * (i + 0.5)) / frameCount;
+                    video.currentTime = targetTime;
+                    await new Promise(res => { video.onseeked = res; });
+                    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                    const jpegDataUrl = canvas.toDataURL('image/jpeg', 0.65);
+                    mediaParts.push({
+                        inlineData: {
+                            mimeType: 'image/jpeg',
+                            data: jpegDataUrl.split(',')[1]
+                        }
+                    });
+                }
+            } finally {
+                URL.revokeObjectURL(videoUrl);
+            }
+
+            return mediaParts;
+        }
+
+        async function extractRecipeWithAI() {
+            const rawText = document.getElementById('social-raw-text').value.trim();
+            const fileInput = document.getElementById('social-video-file');
+            const videoFile = fileInput.files && fileInput.files[0];
+
+            if (!rawText && !videoFile) {
+                showToast('Colle un texte ou choisis une vidéo d\'abord', '⚠️');
+                return;
+            }
+
+            const btn = document.getElementById('ai-extract-btn');
+            const btnText = document.getElementById('ai-extract-text');
+            const btnIcon = document.getElementById('ai-extract-icon');
+
+            btn.disabled = true;
+            btnIcon.textContent = '⏳';
+            btnText.textContent = videoFile ? 'Analyse de la vidéo en cours...' : 'Extraction IA en cours...';
+
+            try {
+                const parts = [
+                    {
+                        text: `Analyse ce contenu issu d'une vidéo culinaire (TikTok / Instagram) et extrais-en une fiche recette structurée, claire et économique en français.
+Classe la recette dans l'un de ces thèmes exacts : "Viande", "Italien", "Pâtes", "Monde", "Poisson", "Mijoté", "Fast food", "Desserts & Goûters".
+Estime également le nombre de points Weight Watchers (programme actuel) PAR PORTION (entier réaliste) en tenant compte des aliments à zéro point (fruits, légumes, œufs, blanc de poulet, poisson blanc, yaourt nature 0%).
+Classe chaque ingrédient dans l'un de ces rayons exacts : "Fruits & Légumes", "Épicerie & Pâtes", "Crèmerie", "Boucherie & Poissonnerie".
+Utilise uniquement ces unités : "g", "ml", "cl", "pièce", "gousses".
+${rawText ? `\nTexte / légende de la vidéo :\n${rawText}` : ''}`
+                    }
+                ];
+
+                if (videoFile) {
+                    if (videoFile.size <= 18 * 1024 * 1024) {
+                        const base64Video = await fileToBase64(videoFile);
+                        parts.push({
+                            inlineData: {
+                                mimeType: videoFile.type || 'video/mp4',
+                                data: base64Video
+                            }
+                        });
+                    } else {
+                        btnText.textContent = 'Compression de la vidéo (audio + images)...';
+                        const compressedParts = await compressLargeVideo(videoFile);
+                        parts.push(...compressedParts);
+                        btnText.textContent = 'Extraction IA en cours...';
+                    }
+                }
+
+                const payload = {
+                    contents: [{ role: 'user', parts }],
+                    generationConfig: {
+                        responseMimeType: "application/json",
+                        responseSchema: {
+                            type: "OBJECT",
+                            properties: {
+                                title: { type: "STRING" },
+                                theme: { type: "STRING", enum: ["Viande", "Italien", "Pâtes", "Monde", "Poisson", "Mijoté", "Fast food", "Desserts & Goûters"] },
+                                servings: { type: "NUMBER" },
+                                time: { type: "NUMBER" },
+                                estimatedCostEuro: { type: "NUMBER" },
+                                wwPointsPerServing: { type: "NUMBER" },
+                                steps: { type: "STRING" },
+                                ingredients: {
+                                    type: "ARRAY",
+                                    items: {
+                                        type: "OBJECT",
+                                        properties: {
+                                            name: { type: "STRING" },
+                                            qty: { type: "NUMBER" },
+                                            unit: { type: "STRING", enum: ["g", "ml", "cl", "pièce", "gousses"] },
+                                            aisle: { type: "STRING", enum: ["Fruits & Légumes", "Épicerie & Pâtes", "Crèmerie", "Boucherie & Poissonnerie"] }
+                                        },
+                                        required: ["name", "qty", "unit", "aisle"]
+                                    }
+                                }
+                            },
+                            required: ["title", "theme", "servings", "time", "estimatedCostEuro", "wwPointsPerServing", "steps", "ingredients"]
+                        }
+                    }
+                };
+
+                const apiKey = "";
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
+
+                // Appel avec backoff exponentiel
+                let response;
+                const delays = [1000, 2000, 4000];
+                for (let attempt = 0; attempt <= delays.length; attempt++) {
+                    response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    if (response.ok || attempt === delays.length) break;
+                    await new Promise(r => setTimeout(r, delays[attempt]));
+                }
+
+                if (!response || !response.ok) {
+                    throw new Error('Erreur réseau lors de l’analyse IA');
+                }
+
+                const result = await response.json();
+                const jsonText = result?.candidates?.[0]?.content?.parts?.[0]?.text;
+                if (!jsonText) throw new Error('Réponse vide de l’IA');
+
+                const extracted = JSON.parse(jsonText);
+
+                // Remplissage automatique du formulaire
+                document.getElementById('rec-title').value = extracted.title || '';
+                if (['Viande', 'Italien', 'Pâtes', 'Monde', 'Poisson', 'Mijoté', 'Fast food', 'Desserts & Goûters'].includes(extracted.theme)) {
+                    document.getElementById('rec-theme').value = extracted.theme;
+                }
+                document.getElementById('rec-servings').value = extracted.servings || 4;
+                document.getElementById('rec-time').value = extracted.time || 20;
+                document.getElementById('rec-cost').value = extracted.estimatedCostEuro || 6;
+                document.getElementById('rec-ww').value = extracted.wwPointsPerServing !== undefined ? Math.round(extracted.wwPointsPerServing) : 6;
+                document.getElementById('rec-steps').value = extracted.steps || '';
+
+                const container = document.getElementById('ingredients-inputs');
+                container.innerHTML = '';
+                if (Array.isArray(extracted.ingredients) && extracted.ingredients.length > 0) {
+                    extracted.ingredients.forEach(ing => {
+                        addIngredientRow(ing.name, ing.qty, ing.unit, ing.aisle);
+                    });
+                } else {
+                    addIngredientRow();
+                }
+
+                showToast('Recette extraite et pré-remplie ! Vérifie puis enregistre.', '✨');
+            } catch (err) {
+                showToast('Impossible d’extraire la recette. Vérifie le texte ou la taille de la vidéo.', '⚠️');
+            } finally {
+                btn.disabled = false;
+                btnIcon.textContent = '🪄';
+                btnText.textContent = 'Extraire la recette automatiquement';
+            }
+        }
+
+        function addIngredientRow(name = '', qty = '', unit = 'g', aisle = 'Épicerie & Pâtes') {
+            const container = document.getElementById('ingredients-inputs');
+            const div = document.createElement('div');
+            div.className = 'flex gap-1.5 items-center ing-row';
+            div.innerHTML = `
+                <input type="text" placeholder="Ingrédient" value="${name}" required class="ing-name flex-1 min-w-0 px-2.5 py-2 bg-white border border-stone-300 rounded-xl text-xs">
+                <input type="number" step="any" placeholder="Qté" value="${qty}" required class="ing-qty w-14 px-2 py-2 bg-white border border-stone-300 rounded-xl text-xs text-center">
+                <select class="ing-unit w-16 px-1 py-2 bg-white border border-stone-300 rounded-xl text-xs">
+                    <option value="g" ${unit === 'g' ? 'selected' : ''}>g</option>
+                    <option value="ml" ${unit === 'ml' ? 'selected' : ''}>ml</option>
+                    <option value="cl" ${unit === 'cl' ? 'selected' : ''}>cl</option>
+                    <option value="pièce" ${unit === 'pièce' ? 'selected' : ''}>pce</option>
+                    <option value="gousses" ${unit === 'gousses' ? 'selected' : ''}>gousse</option>
+                </select>
+                <select class="ing-aisle w-24 px-1 py-2 bg-white border border-stone-300 rounded-xl text-[11px]">
+                    <option value="Fruits & Légumes" ${aisle === 'Fruits & Légumes' ? 'selected' : ''}>Fruits/Lég.</option>
+                    <option value="Épicerie & Pâtes" ${aisle === 'Épicerie & Pâtes' ? 'selected' : ''}>Épicerie</option>
+                    <option value="Crèmerie" ${aisle === 'Crèmerie' ? 'selected' : ''}>Crèmerie</option>
+                    <option value="Boucherie & Poissonnerie" ${aisle === 'Boucherie & Poissonnerie' ? 'selected' : ''}>Viande/Pois.</option>
+                </select>
+                <button type="button" onclick="this.parentElement.remove()" class="text-stone-400 hover:text-red-500 px-1 text-sm">✕</button>
+            `;
+            container.appendChild(div);
+        }
+
+        function simulateSocialImport() {
+            document.getElementById('rec-title').value = 'Chakchouka express aux œufs & feta';
+            document.getElementById('rec-theme').value = 'Monde';
+            document.getElementById('rec-servings').value = 4;
+            document.getElementById('rec-time').value = 20;
+            document.getElementById('rec-cost').value = 6.5;
+            document.getElementById('rec-steps').value = "1. Faire revenir l'oignon et le poivron émincés 5 min dans l'huile d'olive.\n2. Verser les tomates concassées, le cumin et le paprika. Laisser mijoter 8 min.\n3. Casser les œufs directement dans la sauce, couvrir 4 min et parsemer de feta.";
+
+            const container = document.getElementById('ingredients-inputs');
+            container.innerHTML = '';
+            addIngredientRow('Tomates concassées', 400, 'g', 'Épicerie & Pâtes');
+            addIngredientRow('Œufs', 4, 'pièce', 'Crèmerie');
+            addIngredientRow('Oignon jaune', 1, 'pièce', 'Fruits & Légumes');
+            addIngredientRow('Poivron rouge', 1, 'pièce', 'Fruits & Légumes');
+            addIngredientRow('Feta', 100, 'g', 'Crèmerie');
+
+            showToast('Recette extraite depuis TikTok !', '✨');
+        }
+
+        function saveNewRecipe(e) {
+            e.preventDefault();
+            const title = document.getElementById('rec-title').value.trim();
+            const theme = document.getElementById('rec-theme').value;
+            const servings = parseInt(document.getElementById('rec-servings').value) || 4;
+            const time = parseInt(document.getElementById('rec-time').value) || 20;
+            const cost = parseFloat(document.getElementById('rec-cost').value) || 5;
+            const wwPoints = parseInt(document.getElementById('rec-ww').value);
+            const steps = document.getElementById('rec-steps').value.trim();
+
+            const rows = document.querySelectorAll('.ing-row');
+            const ingredients = [];
+            rows.forEach(row => {
+                const name = row.querySelector('.ing-name').value.trim();
+                const qty = parseFloat(row.querySelector('.ing-qty').value);
+                const unit = row.querySelector('.ing-unit').value;
+                const aisle = row.querySelector('.ing-aisle').value;
+                if (name && !isNaN(qty)) {
+                    ingredients.push({ name, qty, unit, aisle });
+                }
+            });
+
+            if (ingredients.length === 0) {
+                showToast('Ajoute au moins un ingrédient', '⚠️');
+                return;
+            }
+
+            const slotMatch = WEEK_SLOTS.find(s => s.theme === theme);
+            const isDessert = theme === 'Desserts & Goûters';
+            const tagLabel = isDessert ? '🧁 Desserts & Goûters' : (slotMatch ? `${slotMatch.code} • ${slotMatch.title}` : theme);
+            const emoji = isDessert ? '🧁' : (slotMatch ? slotMatch.icon : '🍽️');
+
+            state.recipes.unshift({
+                id: 'rec-' + Date.now(),
+                title,
+                emoji,
+                theme,
+                time,
+                cost,
+                servings,
+                wwPoints: isNaN(wwPoints) ? 0 : wwPoints,
+                tag: tagLabel,
+                ingredients,
+                steps
+            });
+
+            saveState();
+            closeModal('modal-add-recipe');
+            render();
+            showToast('Recette ajoutée à ton carnet !', '🎉');
+        }
+
+        // ==========================================
+        // ONGLET 2 : MA SEMAINE (J1 À J7 THÉMATIQUE)
+        // ==========================================
+        function openPlanModal(recipeId) {
+            const rec = state.recipes.find(r => r.id === recipeId);
+            if (!rec) return;
+            state.selectedRecipeForPlan = recipeId;
+            // Pré-sélectionner automatiquement le jour ou le moment Dessert / Goûter
+            if (rec.theme === 'Desserts & Goûters') {
+                document.getElementById('plan-meal').value = 'Dessert / Goûter';
+            } else {
+                document.getElementById('plan-meal').value = 'Soir';
+                const matchingSlot = WEEK_SLOTS.find(s => s.theme === rec.theme);
+                if (matchingSlot) {
+                    document.getElementById('plan-day').value = matchingSlot.code;
+                }
+            }
+            document.getElementById('plan-recipe-name').textContent = `${rec.emoji || '🍽️'} ${rec.title} (${rec.wwPoints ?? '?'} pts WW)`;
+            document.getElementById('plan-servings').value = state.defaultServings;
+            document.getElementById('modal-plan-recipe').classList.remove('hidden');
+        }
+
+        function confirmPlanRecipe() {
+            const day = document.getElementById('plan-day').value;
+            const meal = document.getElementById('plan-meal').value;
+            const servings = parseInt(document.getElementById('plan-servings').value) || 2;
+
+            state.mealPlan.push({
+                id: 'mp-' + Date.now(),
+                day,
+                meal,
+                recipeId: state.selectedRecipeForPlan,
+                servings
+            });
+
+            saveState();
+            closeModal('modal-plan-recipe');
+            render();
+            showToast(`Ajouté au ${day} (${meal})`, '📅');
+        }
+
+        function autoFillWeek() {
+            const newPlan = [];
+            WEEK_SLOTS.forEach((slot, idx) => {
+                // Cherche les recettes correspondant au thème du jour
+                let candidates = state.recipes.filter(r => r.theme === slot.theme);
+                if (candidates.length === 0) candidates = state.recipes.filter(r => r.theme !== 'Desserts & Goûters');
+                if (candidates.length > 0) {
+                    const randomRec = candidates[Math.floor(Math.random() * candidates.length)];
+                    newPlan.push({
+                        id: 'mp-auto-' + idx + '-' + Date.now(),
+                        day: slot.code,
+                        meal: 'Soir',
+                        recipeId: randomRec.id,
+                        servings: state.defaultServings
+                    });
+                }
+            });
+            // Ajoute également 2 idées desserts/goûters sur la semaine si disponibles
+            const dessertCandidates = state.recipes.filter(r => r.theme === 'Desserts & Goûters');
+            if (dessertCandidates.length > 0) {
+                const d1 = dessertCandidates[0];
+                newPlan.push({
+                    id: 'mp-auto-des1-' + Date.now(),
+                    day: 'J3',
+                    meal: 'Dessert / Goûter',
+                    recipeId: d1.id,
+                    servings: state.defaultServings
+                });
+                if (dessertCandidates.length > 1) {
+                    const d2 = dessertCandidates[1];
+                    newPlan.push({
+                        id: 'mp-auto-des2-' + Date.now(),
+                        day: 'J6',
+                        meal: 'Dessert / Goûter',
+                        recipeId: d2.id,
+                        servings: state.defaultServings
+                    });
+                }
+            }
+            state.mealPlan = newPlan;
+            saveState();
+            render();
+            showToast('Semaine J1 à J7 + goûters générés !', '✨');
+        }
+
+        function removePlannedMeal(planId) {
+            state.mealPlan = state.mealPlan.filter(m => m.id !== planId);
+            saveState();
+            render();
+            showToast('Repas retiré du planning', '🗑️');
+        }
+
+        function updateMealServings(planId, delta) {
+            const item = state.mealPlan.find(m => m.id === planId);
+            if (!item) return;
+            item.servings = Math.max(1, Math.min(12, item.servings + delta));
+            saveState();
+            render();
+        }
+
+        function applyGlobalServings(newVal) {
+            const val = parseInt(newVal);
+            if (isNaN(val) || val < 1) return;
+            state.defaultServings = val;
+            state.mealPlan.forEach(m => m.servings = val);
+            saveState();
+            render();
+            showToast(`Tous les repas ajustés pour ${val} pers.`, '👥');
+        }
+
+        function renderWeekTab() {
+            // Calcul du budget total estimé de la semaine
+            let totalWeekBudget = 0;
+            state.mealPlan.forEach(item => {
+                const rec = state.recipes.find(r => r.id === item.recipeId);
+                if (rec) {
+                    totalWeekBudget += (rec.cost / rec.servings) * item.servings;
+                }
+            });
+
+            const daysHtml = WEEK_SLOTS.map(slot => {
+                const dayMeals = state.mealPlan.filter(m => m.day === slot.code);
+                let dayWwPoints = 0;
+                dayMeals.forEach(m => {
+                    const r = state.recipes.find(rec => rec.id === m.recipeId);
+                    if (r && r.wwPoints !== undefined) dayWwPoints += r.wwPoints;
+                });
+
+                const mealsListHtml = dayMeals.length === 0
+                    ? `<div class="text-xs text-stone-400 italic py-1.5">Aucun repas choisi pour ce thème</div>`
+                    : dayMeals.map(m => {
+                        const rec = state.recipes.find(r => r.id === m.recipeId);
+                        if (!rec) return '';
+                        const mealCost = ((rec.cost / rec.servings) * m.servings).toFixed(2).replace('.', ',');
+                        const isSweet = m.meal === 'Dessert / Goûter' || rec.theme === 'Desserts & Goûters';
+                        const cardStyle = isSweet ? 'bg-amber-50/80 border-amber-200/80' : 'bg-sage-50/90 border-sage-200/80';
+                        const wwPts = rec.wwPoints !== undefined ? rec.wwPoints : '?';
+                        return `
+                        <div class="${cardStyle} border rounded-2xl p-3 flex items-center justify-between gap-2 mt-2">
+                            <div class="min-w-0 flex-1">
+                                <div class="flex items-center gap-1.5">
+                                    <span class="text-[10px] font-bold uppercase px-2 py-0.5 rounded-md bg-white ${isSweet ? 'text-amber-700 border-amber-200' : 'text-sage-700 border-sage-200'} border">${m.meal}</span>
+                                    <span onclick="openRecipeDetail('${rec.id}')" class="text-sm font-bold text-stone-900 truncate cursor-pointer hover:underline">${rec.emoji || ''} ${rec.title}</span>
+                                </div>
+                                <div class="flex items-center justify-between mt-2">
+                                    <div class="flex items-center gap-1.5">
+                                        <span class="text-[11px] text-stone-500">Convives :</span>
+                                        <div class="inline-flex items-center bg-white rounded-lg border border-stone-200 px-1">
+                                            <button onclick="updateMealServings('${m.id}', -1)" class="px-1.5 text-xs font-bold text-stone-600">-</button>
+                                            <span class="px-1.5 text-xs font-bold text-sage-700">${m.servings}</span>
+                                            <button onclick="updateMealServings('${m.id}', 1)" class="px-1.5 text-xs font-bold text-stone-600">+</button>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-[11px] font-bold px-2 py-0.5 rounded-md bg-sky-100 text-sky-800">${wwPts} pts WW</span>
+                                        <span class="text-xs font-semibold text-terracotta-600">~${mealCost} €</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <button onclick="removePlannedMeal('${m.id}')" class="p-2 text-stone-400 hover:text-red-500 rounded-xl transition" title="Retirer">
+                                ✕
+                            </button>
+                        </div>
+                        `;
+                    }).join('');
+
+                return `
+                <div class="bg-white rounded-3xl p-4 shadow-xs border border-stone-200/70">
+                    <div class="flex items-center justify-between gap-2">
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <span class="text-[11px] font-bold uppercase tracking-wider text-terracotta-600">${slot.code} • ${slot.label}</span>
+                                ${dayMeals.length > 0 ? `<span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-sky-50 text-sky-700 border border-sky-200">Total : ${dayWwPoints} pts</span>` : ''}
+                            </div>
+                            <h3 class="font-display font-bold text-stone-900 text-base flex items-center gap-1.5">
+                                <span>${slot.icon}</span>
+                                <span>${slot.title}</span>
+                            </h3>
+                        </div>
+                        <button onclick="quickPlanForSlot('${slot.code}', '${slot.theme}')" class="shrink-0 text-xs font-semibold text-sage-700 bg-sage-50 hover:bg-sage-100 border border-sage-200/70 px-3 py-1.5 rounded-xl transition">
+                            + Choisir
+                        </button>
+                    </div>
+                    ${mealsListHtml}
+                </div>
+                `;
+            }).join('');
+
+            return `
+                <div class="bg-sand rounded-3xl p-4 border border-stone-200/80 space-y-3">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h2 class="font-display text-xl font-bold text-stone-900">Semaine Thématique</h2>
+                            <p class="text-xs text-stone-600">${state.mealPlan.length} repas planifiés (J1 à J7)</p>
+                        </div>
+                        <div class="text-right">
+                            <span class="text-[11px] text-stone-500 block">Budget estimé</span>
+                            <span class="font-display text-lg font-bold text-terracotta-600">~${totalWeekBudget.toFixed(2).replace('.', ',')} €</span>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center justify-between pt-2 border-t border-stone-300/60 text-xs">
+                        <span class="font-medium text-stone-700">Convives :</span>
+                        <div class="flex items-center gap-1.5">
+                            ${[1, 2, 3, 4, 6].map(num => `
+                                <button onclick="applyGlobalServings(${num})" class="w-7 h-7 rounded-lg font-bold transition ${state.defaultServings === num ? 'bg-sage-600 text-white' : 'bg-white text-stone-600 border border-stone-200'}">
+                                    ${num}
+                                </button>
+                            `).join('')}
+                        </div>
+                    </div>
+
+                    <button onclick="autoFillWeek()" class="w-full py-2.5 px-4 bg-terracotta-500 hover:bg-terracotta-600 text-white text-xs font-bold rounded-2xl shadow-xs transition flex items-center justify-center gap-1.5">
+                        <span>🎲 Remplir ma semaine automatiquement (J1 → J7)</span>
+                    </button>
+                </div>
+
+                <div class="space-y-3">
+                    ${daysHtml}
+                </div>
+            `;
+        }
+
+        function quickPlanForSlot(dayCode, theme) {
+            if (state.recipes.length === 0) {
+                showToast('Ajoute d\'abord une recette !', '⚠️');
+                return;
+            }
+            // Mettre en avant les recettes du thème correspondant, puis les desserts/goûters, puis les autres
+            const themeRecipes = state.recipes.filter(r => r.theme === theme);
+            const dessertRecipes = state.recipes.filter(r => r.theme === 'Desserts & Goûters' && r.theme !== theme);
+            const otherRecipes = state.recipes.filter(r => r.theme !== theme && r.theme !== 'Desserts & Goûters');
+            const orderedRecipes = [...themeRecipes, ...dessertRecipes, ...otherRecipes];
+
+            document.getElementById('plan-day').value = dayCode;
+            openPlanModal(orderedRecipes[0].id);
+
+            let optionsHtml = '';
+            if (themeRecipes.length > 0) {
+                optionsHtml += `<optgroup label="✨ Idées ${theme}">` +
+                    themeRecipes.map(r => `<option value="${r.id}">${r.emoji || ''} ${r.title} (${r.wwPoints ?? '?'} pts)</option>`).join('') +
+                    `</optgroup>`;
+            }
+            if (dessertRecipes.length > 0) {
+                optionsHtml += `<optgroup label="🧁 Desserts & Goûters">` +
+                    dessertRecipes.map(r => `<option value="${r.id}">${r.emoji || ''} ${r.title} (${r.wwPoints ?? '?'} pts)</option>`).join('') +
+                    `</optgroup>`;
+            }
+            if (otherRecipes.length > 0) {
+                optionsHtml += `<optgroup label="Autres recettes">` +
+                    otherRecipes.map(r => `<option value="${r.id}">${r.emoji || ''} ${r.title} (${r.wwPoints ?? '?'} pts)</option>`).join('') +
+                    `</optgroup>`;
+            }
+
+            document.getElementById('plan-recipe-name').innerHTML = `
+                <select onchange="handleQuickRecipeChange(this.value)" class="w-full bg-transparent font-bold text-sage-800 focus:outline-none">
+                    ${optionsHtml}
+                </select>
+            `;
+        }
+
+        function handleQuickRecipeChange(recipeId) {
+            state.selectedRecipeForPlan = recipeId;
+            const rec = state.recipes.find(r => r.id === recipeId);
+            if (rec && rec.theme === 'Desserts & Goûters') {
+                document.getElementById('plan-meal').value = 'Dessert / Goûter';
+            } else {
+                document.getElementById('plan-meal').value = 'Soir';
+            }
+        }
+
+        // ==========================================
+        // ONGLET 3 : LISTE DE COURSES INTELLIGENTE
+        // ==========================================
+        function computeShoppingList() {
+            const map = new Map();
+
+            state.mealPlan.forEach(planItem => {
+                const rec = state.recipes.find(r => r.id === planItem.recipeId);
+                if (!rec) return;
+
+                const ratio = planItem.servings / rec.servings;
+
+                rec.ingredients.forEach(ing => {
+                    // Normalisation du nom pour regrouper les mêmes ingrédients (ex: Oignon jaune)
+                    const cleanName = ing.name.trim();
+                    const key = `${cleanName.toLowerCase()}_${ing.unit.toLowerCase()}`;
+                    const scaledQty = ing.qty * ratio;
+
+                    if (map.has(key)) {
+                        const existing = map.get(key);
+                        existing.qty += scaledQty;
+                    } else {
+                        map.set(key, {
+                            key,
+                            name: cleanName,
+                            qty: scaledQty,
+                            unit: ing.unit,
+                            aisle: ing.aisle || 'Épicerie'
+                        });
+                    }
+                });
+            });
+
+            return Array.from(map.values());
+        }
+
+        function toggleAutoItem(key) {
+            state.checkedAutoItems[key] = !state.checkedAutoItems[key];
+            saveState();
+            render();
+        }
+
+        function addManualShoppingItem(e) {
+            e.preventDefault();
+            const input = document.getElementById('manual-item-input');
+            const aisle = document.getElementById('manual-item-aisle').value;
+            const name = input.value.trim();
+            if (!name) return;
+
+            state.manualItems.push({
+                id: 'man-' + Date.now(),
+                name,
+                aisle,
+                checked: false
+            });
+            input.value = '';
+            saveState();
+            render();
+            showToast('Article ajouté à la liste', '🛒');
+        }
+
+        function toggleManualItem(id) {
+            const item = state.manualItems.find(i => i.id === id);
+            if (item) {
+                item.checked = !item.checked;
+                saveState();
+                render();
+            }
+        }
+
+        function removeManualItem(id) {
+            state.manualItems = state.manualItems.filter(i => i.id !== id);
+            saveState();
+            render();
+        }
+
+        function formatQty(num) {
+            return Number.isInteger(num) ? num : Math.round(num * 10) / 10;
+        }
+
+        function renderShoppingTab() {
+            const autoItems = computeShoppingList();
+            const aislesOrder = ['Fruits & Légumes', 'Boucherie & Poissonnerie', 'Crèmerie', 'Épicerie & Pâtes', 'Autres / Maison'];
+            const aisleIcons = {
+                'Fruits & Légumes': '🥦',
+                'Boucherie & Poissonnerie': '🥩',
+                'Crèmerie': '🧀',
+                'Épicerie & Pâtes': '🍝',
+                'Autres / Maison': '🧻'
+            };
+
+            // Regroupement par rayon
+            const grouped = {};
+            aislesOrder.forEach(a => grouped[a] = []);
+
+            autoItems.forEach(item => {
+                const targetAisle = grouped[item.aisle] ? item.aisle : 'Épicerie & Pâtes';
+                grouped[targetAisle].push({
+                    type: 'auto',
+                    id: item.key,
+                    name: item.name,
+                    qtyText: `${formatQty(item.qty)} ${item.unit}`,
+                    checked: !!state.checkedAutoItems[item.key]
+                });
+            });
+
+            state.manualItems.forEach(item => {
+                const targetAisle = grouped[item.aisle] ? item.aisle : 'Autres / Maison';
+                grouped[targetAisle].push({
+                    type: 'manual',
+                    id: item.id,
+                    name: item.name,
+                    qtyText: 'Ajout manuel',
+                    checked: item.checked
+                });
+            });
+
+            let aislesHtml = '';
+            let hasAnyItem = false;
+
+            aislesOrder.forEach(aisle => {
+                const items = grouped[aisle];
+                if (items.length === 0) return;
+                hasAnyItem = true;
+
+                const itemsHtml = items.map(item => `
+                    <div class="flex items-center justify-between py-2.5 border-b border-stone-100 last:border-0">
+                        <label class="flex items-center gap-3 cursor-pointer flex-1 select-none">
+                            <input type="checkbox" ${item.checked ? 'checked' : ''} 
+                                onchange="${item.type === 'auto' ? `toggleAutoItem('${item.id}')` : `toggleManualItem('${item.id}')`}"
+                                class="w-5 h-5 rounded-lg accent-sage-600 cursor-pointer">
+                            <span class="text-sm font-medium transition ${item.checked ? 'line-through text-stone-400' : 'text-stone-800'}">
+                                ${item.name}
+                            </span>
+                        </label>
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs font-semibold px-2.5 py-1 rounded-lg ${item.checked ? 'bg-stone-100 text-stone-400' : 'bg-sage-50 text-sage-700'}">
+                                ${item.qtyText}
+                            </span>
+                            ${item.type === 'manual' ? `<button onclick="removeManualItem('${item.id}')" class="text-stone-400 hover:text-red-500 text-xs px-1">✕</button>` : ''}
+                        </div>
+                    </div>
+                `).join('');
+
+                aislesHtml += `
+                    <div class="bg-white rounded-3xl p-4 shadow-xs border border-stone-200/70 animate-fade">
+                        <h3 class="font-display font-bold text-stone-900 text-sm mb-2 flex items-center gap-2">
+                            <span>${aisleIcons[aisle] || '🛒'}</span>
+                            <span>${aisle}</span>
+                            <span class="text-xs font-normal text-stone-400">(${items.length})</span>
+                        </h3>
+                        <div>${itemsHtml}</div>
+                    </div>
+                `;
+            });
+
+            if (!hasAnyItem) {
+                aislesHtml = `
+                    <div class="bg-white rounded-3xl p-8 text-center border border-stone-200/70 space-y-2">
+                        <div class="text-4xl">🛒</div>
+                        <h3 class="font-display font-bold text-stone-800">Ta liste est vide</h3>
+                        <p class="text-xs text-stone-500">Planifie des recettes dans l'onglet "Ma Semaine" pour générer automatiquement tes courses.</p>
+                    </div>
+                `;
+            }
+
+            return `
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h2 class="font-display text-xl font-bold text-stone-900">Liste de Courses</h2>
+                        <p class="text-xs text-stone-500">Quantités cumulées selon ton planning</p>
+                    </div>
+                    <button onclick="copyShoppingList()" class="py-2 px-3.5 bg-sage-600 hover:bg-sage-700 text-white text-xs font-bold rounded-2xl shadow-xs transition flex items-center gap-1.5">
+                        <span>📋 Copier</span>
+                    </button>
+                </div>
+
+                <!-- Formulaire d'ajout manuel rapide -->
+                <form onsubmit="addManualShoppingItem(event)" class="bg-sand p-3 rounded-2xl flex gap-2 items-center border border-stone-200/80">
+                    <input type="text" id="manual-item-input" placeholder="Ajouter un article (ex: Café, Sopalin...)" class="flex-1 min-w-0 px-3 py-2 bg-white rounded-xl text-xs border border-stone-200 focus:outline-none focus:border-sage-500">
+                    <select id="manual-item-aisle" class="px-2 py-2 bg-white rounded-xl text-xs border border-stone-200">
+                        <option value="Autres / Maison">Maison</option>
+                        <option value="Fruits & Légumes">Fruits/Lég.</option>
+                        <option value="Crèmerie">Crèmerie</option>
+                        <option value="Épicerie & Pâtes">Épicerie</option>
+                    </select>
+                    <button type="submit" class="px-3 py-2 bg-stone-800 text-white text-xs font-bold rounded-xl hover:bg-stone-900 transition">
+                        +
+                    </button>
+                </form>
+
+                <div class="space-y-3">
+                    ${aislesHtml}
+                </div>
+            `;
+        }
+
+        function copyShoppingList() {
+            const autoItems = computeShoppingList();
+            if (autoItems.length === 0 && state.manualItems.length === 0) {
+                showToast('Rien à copier pour le moment', '⚠️');
+                return;
+            }
+
+            let text = "🛒 MA LISTE DE COURSES :\n\n";
+            autoItems.forEach(item => {
+                const check = state.checkedAutoItems[item.key] ? '☑' : '☐';
+                text += `${check} ${item.name} (${formatQty(item.qty)} ${item.unit})\n`;
+            });
+            state.manualItems.forEach(item => {
+                const check = item.checked ? '☑' : '☐';
+                text += `${check} ${item.name}\n`;
+            });
+
+            // Copie compatible iframe via textarea temporaire
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
+
+            showToast('Liste copiée ! Prête à coller dans Notes/WhatsApp', '📋');
+        }
+
+        // Lancement au chargement
+        window.onload = function() {
+            loadState();
+            render();
+        };
+    </script>
+</body>
+</html>
