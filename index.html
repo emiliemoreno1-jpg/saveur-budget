@@ -1,4 +1,4 @@
-<!DOCTYPE.html>
+<!DOCTYPE html>
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
@@ -144,19 +144,28 @@
                             </button>
                         </div>
                         <p class="text-xs text-stone-600 leading-relaxed">
-                            Colle la légende/transcription de la vidéo <strong>ou</strong> importe la vidéo enregistrée depuis ton téléphone :
+                            Colle un lien, la légende, <strong>importe une photo</strong> (capture d'écran, livre, note) <strong>ou</strong> une vidéo sans limite de taille :
                         </p>
+
+                        <input type="url" id="social-raw-url" placeholder="Lien TikTok, Instagram, YouTube ou page de recette (https://...)" class="w-full px-3 py-2 bg-white/90 border border-terracotta-200 rounded-xl text-xs focus:outline-none focus:border-terracotta-500">
                         
                         <textarea id="social-raw-text" rows="2" placeholder="Colle ici le texte ou les ingrédients en vrac de TikTok/Instagram..." class="w-full px-3 py-2 bg-white/90 border border-terracotta-200 rounded-xl text-xs focus:outline-none focus:border-terracotta-500"></textarea>
                         
-                        <div class="flex items-center gap-2">
-                            <label class="flex-1 cursor-pointer bg-white hover:bg-stone-50 border border-dashed border-terracotta-300 rounded-xl px-3 py-2 text-xs text-stone-600 flex items-center justify-center gap-1.5 transition truncate">
+                        <div class="grid grid-cols-2 gap-2">
+                            <label class="cursor-pointer bg-white hover:bg-stone-50 border border-dashed border-terracotta-300 rounded-xl px-2.5 py-2 text-xs text-stone-600 flex items-center justify-center gap-1.5 transition truncate">
+                                <span>📸</span>
+                                <span id="photo-file-label" class="truncate font-medium">Photo / Capture</span>
+                                <input type="file" id="social-photo-file" accept="image/*" onchange="handlePhotoFileSelect(this)" class="hidden">
+                            </label>
+                            <label class="cursor-pointer bg-white hover:bg-stone-50 border border-dashed border-terracotta-300 rounded-xl px-2.5 py-2 text-xs text-stone-600 flex items-center justify-center gap-1.5 transition truncate">
                                 <span>🎥</span>
-                                <span id="video-file-label" class="truncate font-medium">Importer une vidéo (MP4/MOV)</span>
+                                <span id="video-file-label" class="truncate font-medium">Vidéo (MP4/MOV)</span>
                                 <input type="file" id="social-video-file" accept="video/*" onchange="handleVideoFileSelect(this)" class="hidden">
                             </label>
-                            <button type="button" onclick="clearSocialImport()" id="clear-social-btn" class="hidden px-2.5 py-2 bg-white border border-stone-200 rounded-xl text-xs text-stone-500 hover:text-red-500" title="Effacer">✕</button>
                         </div>
+                        <button type="button" onclick="clearSocialImport()" id="clear-social-btn" class="hidden w-full py-1.5 bg-white border border-stone-200 rounded-xl text-[11px] font-medium text-stone-500 hover:text-red-500 transition">
+                            ✕ Effacer les fichiers / textes sélectionnés
+                        </button>
 
                         <button type="button" id="ai-extract-btn" onclick="extractRecipeWithAI()" class="w-full py-2.5 px-3 bg-terracotta-500 hover:bg-terracotta-600 disabled:opacity-60 text-white text-xs font-bold rounded-xl shadow-xs transition flex items-center justify-center gap-2">
                             <span id="ai-extract-icon">🪄</span>
@@ -923,23 +932,16 @@
             document.getElementById('modal-recipe-detail').classList.remove('hidden');
         }
 
-        function deleteRecipe(id) {
-            state.recipes = state.recipes.filter(r => r.id !== id);
-            state.mealPlan = state.mealPlan.filter(m => m.recipeId !== id);
-            saveState();
-            closeModal('modal-recipe-detail');
-            render();
-            showToast('Recette supprimée', '🗑️');
-        }
-
-        function openAddRecipeModal() {
-            document.getElementById('add-recipe-form').reset();
-            clearSocialImport();
-            const container = document.getElementById('ingredients-inputs');
-            container.innerHTML = '';
-            addIngredientRow();
-            addIngredientRow();
-            document.getElementById('modal-add-recipe').classList.remove('hidden');
+        function handlePhotoFileSelect(input) {
+            const label = document.getElementById('photo-file-label');
+            const clearBtn = document.getElementById('clear-social-btn');
+            if (input.files && input.files[0]) {
+                const file = input.files[0];
+                const sizeMb = (file.size / (1024 * 1024)).toFixed(1);
+                label.textContent = `${file.name} (${sizeMb} Mo)`;
+                label.classList.add('text-terracotta-600', 'font-semibold');
+                clearBtn.classList.remove('hidden');
+            }
         }
 
         function handleVideoFileSelect(input) {
@@ -951,27 +953,37 @@
                 label.textContent = `${file.name} (${sizeMb} Mo)`;
                 label.classList.add('text-terracotta-600', 'font-semibold');
                 clearBtn.classList.remove('hidden');
-                if (file.size > 18 * 1024 * 1024) {
-                    showToast('Vidéo > 18 Mo : compression auto activée', '⚡');
+                if (file.size > 10 * 1024 * 1024) {
+                    showToast('Vidéo optimisée automatiquement pour l’IA', '⚡');
                 }
             }
         }
 
         function clearSocialImport() {
+            const urlEl = document.getElementById('social-raw-url');
             const textEl = document.getElementById('social-raw-text');
+            const photoEl = document.getElementById('social-photo-file');
+            const photoLabel = document.getElementById('photo-file-label');
             const fileEl = document.getElementById('social-video-file');
             const label = document.getElementById('video-file-label');
             const clearBtn = document.getElementById('clear-social-btn');
+            if (urlEl) urlEl.value = '';
             if (textEl) textEl.value = '';
+            if (photoEl) photoEl.value = '';
+            if (photoLabel) {
+                photoLabel.textContent = 'Photo / Capture';
+                photoLabel.classList.remove('text-terracotta-600', 'font-semibold');
+            }
             if (fileEl) fileEl.value = '';
             if (label) {
-                label.textContent = 'Importer une vidéo (MP4/MOV)';
+                label.textContent = 'Vidéo (MP4/MOV)';
                 label.classList.remove('text-terracotta-600', 'font-semibold');
             }
             if (clearBtn) clearBtn.classList.add('hidden');
         }
 
         function fillDemoSocialText() {
+            document.getElementById('social-raw-url').value = "https://www.tiktok.com/@exemple/video/123456789";
             document.getElementById('social-raw-text').value = "Recette TikTok viral 🔥 Pâtes crémeuses au thon et citron en 15 min ! Il vous faut : 350g de penne, 2 boîtes de thon au naturel, 20cl de crème liquide, 1 citron jaune, 1 gousse d'ail et du persil. On cuit les pâtes, on mélange le thon émietté avec la crème, le jus et le zeste de citron à la poêle 3 min, on ajoute les pâtes et hop c'est prêt ! #recettefacile #pascher";
             document.getElementById('clear-social-btn').classList.remove('hidden');
         }
@@ -985,11 +997,43 @@
             });
         }
 
+        // Redimensionne et compresse une photo pour une lecture OCR rapide et légère
+        function compressImageFile(file) {
+            return new Promise((resolve, reject) => {
+                const imgUrl = URL.createObjectURL(file);
+                const img = new Image();
+                img.onload = () => {
+                    try {
+                        const maxSide = 1400;
+                        const scale = Math.min(1, maxSide / Math.max(img.width || maxSide, img.height || maxSide));
+                        const canvas = document.createElement('canvas');
+                        canvas.width = Math.max(1, Math.round(img.width * scale));
+                        canvas.height = Math.max(1, Math.round(img.height * scale));
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                        const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+                        resolve(dataUrl.split(',')[1]);
+                    } catch (err) {
+                        reject(err);
+                    } finally {
+                        URL.revokeObjectURL(imgUrl);
+                    }
+                };
+                img.onerror = (err) => {
+                    URL.revokeObjectURL(imgUrl);
+                    reject(err);
+                };
+                img.src = imgUrl;
+            });
+        }
+
         function arrayBufferToBase64(buffer) {
             let binary = '';
             const bytes = new Uint8Array(buffer);
-            for (let i = 0; i < bytes.byteLength; i++) {
-                binary += String.fromCharCode(bytes[i]);
+            const chunkSize = 0x8000;
+            for (let i = 0; i < bytes.byteLength; i += chunkSize) {
+                const sub = bytes.subarray(i, Math.min(i + chunkSize, bytes.byteLength));
+                binary += String.fromCharCode.apply(null, sub);
             }
             return btoa(binary);
         }
@@ -1005,80 +1049,71 @@
             writeStr(8, 'WAVE');
             writeStr(12, 'fmt ');
             view.setUint32(16, 16, true);
-            view.setUint16(20, 1, true);
-            view.setUint16(22, 1, true);
-            view.setUint32(24, sampleRate, true);
-            view.setUint32(28, sampleRate * 2, true);
-            view.setUint16(32, 2, true);
-            view.setUint16(34, 16, true);
-            writeStr(36, 'data');
-            view.setUint32(40, float32Samples.length * 2, true);
-
-            let offset = 44;
-            for (let i = 0; i < float32Samples.length; i++, offset += 2) {
-                const s = Math.max(-1, Math.min(1, float32Samples[i]));
-                view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
-            }
-            return buffer;
-        }
-
-        // Compresse une vidéo > 18 Mo en extrayant sa piste audio (8kHz) + 8 captures d'écran clés
+        // Compresse une vidéo (même > 18 Mo ou > 100 Mo) en extrayant 16 images clés + l'audio léger si possible
         async function compressLargeVideo(file) {
             const mediaParts = [];
 
-            // 1. Extraction et ré-échantillonnage de la piste audio en WAV 8kHz mono (très léger : ~900 Ko/min)
-            try {
-                const arrayBuffer = await file.arrayBuffer();
-                const AudioCtx = window.AudioContext || window.webkitAudioContext;
-                const audioCtx = new AudioCtx();
-                const decoded = await audioCtx.decodeAudioData(arrayBuffer);
-                const targetRate = 8000;
-                const maxSeconds = Math.min(decoded.duration, 180); // Max 3 min
-                const frameCount = Math.floor(maxSeconds * targetRate);
-                const offlineCtx = new OfflineAudioContext(1, frameCount, targetRate);
-                const source = offlineCtx.createBufferSource();
-                source.buffer = decoded;
-                source.connect(offlineCtx.destination);
-                source.start();
-                const rendered = await offlineCtx.startRendering();
-                const wavBuffer = encodeMonoWav(rendered.getChannelData(0), targetRate);
-                mediaParts.push({
-                    inlineData: {
-                        mimeType: 'audio/wav',
-                        data: arrayBufferToBase64(wavBuffer)
-                    }
-                });
-                audioCtx.close();
-            } catch (e) {
-                // Si la vidéo n'a pas de piste audio, on continue avec les images
+            // 1. Extraction de la piste audio en WAV 8kHz mono (uniquement si < 65 Mo pour éviter de saturer la mémoire mobile)
+            if (file.size <= 65 * 1024 * 1024) {
+                try {
+                    const arrayBuffer = await file.arrayBuffer();
+                    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                    const audioCtx = new AudioCtx();
+                    const decoded = await audioCtx.decodeAudioData(arrayBuffer);
+                    const targetRate = 8000;
+                    const maxSeconds = Math.min(decoded.duration, 180);
+                    const frameCount = Math.max(1, Math.floor(maxSeconds * targetRate));
+                    const offlineCtx = new OfflineAudioContext(1, frameCount, targetRate);
+                    const source = offlineCtx.createBufferSource();
+                    source.buffer = decoded;
+                    source.connect(offlineCtx.destination);
+                    source.start();
+                    const rendered = await offlineCtx.startRendering();
+                    const wavBuffer = encodeMonoWav(rendered.getChannelData(0), targetRate);
+                    mediaParts.push({
+                        inlineData: {
+                            mimeType: 'audio/wav',
+                            data: arrayBufferToBase64(wavBuffer)
+                        }
+                    });
+                    if (typeof audioCtx.close === 'function') audioCtx.close();
+                } catch (e) {
+                    // Si l'audio ne peut pas être décodé, l'analyse continue avec les images clés
+                }
             }
 
-            // 2. Extraction de 8 images clés réparties sur la vidéo pour lire les textes incrustés
+            // 2. Extraction en streaming de 16 images clés (fonctionne même pour des vidéos de 100+ Mo sans saturation mémoire)
             const videoUrl = URL.createObjectURL(file);
             try {
                 const video = document.createElement('video');
                 video.src = videoUrl;
                 video.muted = true;
                 video.playsInline = true;
+                video.preload = 'metadata';
                 await new Promise((res, rej) => {
                     video.onloadedmetadata = res;
                     video.onerror = rej;
                 });
 
                 const canvas = document.createElement('canvas');
-                const scale = Math.min(1, 512 / Math.max(video.videoWidth || 512, video.videoHeight || 512));
-                canvas.width = Math.round((video.videoWidth || 360) * scale);
-                canvas.height = Math.round((video.videoHeight || 640) * scale);
+                const maxSide = 720;
+                const scale = Math.min(1, maxSide / Math.max(video.videoWidth || maxSide, video.videoHeight || maxSide));
+                canvas.width = Math.max(1, Math.round((video.videoWidth || 360) * scale));
+                canvas.height = Math.max(1, Math.round((video.videoHeight || 640) * scale));
                 const ctx = canvas.getContext('2d');
 
                 const duration = video.duration || 10;
-                const frameCount = 8;
+                const frameCount = 16;
                 for (let i = 0; i < frameCount; i++) {
                     const targetTime = (duration * (i + 0.5)) / frameCount;
-                    video.currentTime = targetTime;
-                    await new Promise(res => { video.onseeked = res; });
+                    video.currentTime = Math.min(duration - 0.05, Math.max(0, targetTime));
+                    await new Promise(res => {
+                        const timer = setTimeout(res, 1500);
+                        video.onseeked = () => { clearTimeout(timer); res(); };
+                        video.onerror = () => { clearTimeout(timer); res(); };
+                    });
                     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-                    const jpegDataUrl = canvas.toDataURL('image/jpeg', 0.65);
+                    const jpegDataUrl = canvas.toDataURL('image/jpeg', 0.72);
                     mediaParts.push({
                         inlineData: {
                             mimeType: 'image/jpeg',
@@ -1094,12 +1129,15 @@
         }
 
         async function extractRecipeWithAI() {
+            const rawUrl = document.getElementById('social-raw-url').value.trim();
             const rawText = document.getElementById('social-raw-text').value.trim();
+            const photoInput = document.getElementById('social-photo-file');
+            const photoFile = photoInput && photoInput.files && photoInput.files[0];
             const fileInput = document.getElementById('social-video-file');
-            const videoFile = fileInput.files && fileInput.files[0];
+            const videoFile = fileInput && fileInput.files && fileInput.files[0];
 
-            if (!rawText && !videoFile) {
-                showToast('Colle un texte ou choisis une vidéo d\'abord', '⚠️');
+            if (!rawUrl && !rawText && !photoFile && !videoFile) {
+                showToast('Ajoute une photo, une vidéo, un lien ou du texte d\'abord', '⚠️');
                 return;
             }
 
@@ -1109,22 +1147,35 @@
 
             btn.disabled = true;
             btnIcon.textContent = '⏳';
-            btnText.textContent = videoFile ? 'Analyse de la vidéo en cours...' : 'Extraction IA en cours...';
+            btnText.textContent = photoFile ? 'Lecture de la photo...' : (videoFile ? 'Traitement de la vidéo...' : 'Extraction IA en cours...');
 
             try {
                 const parts = [
                     {
-                        text: `Analyse ce contenu issu d'une vidéo culinaire (TikTok / Instagram) et extrais-en une fiche recette structurée, claire et économique en français.
+                        text: `Analyse ce contenu issu d'une photo (capture d'écran, page de livre, recette manuscrite ou plat), d'un lien, d'un texte ou d'une vidéo culinaire (TikTok / Instagram / blog) et extrais-en une fiche recette structurée, claire et économique en français. Si c'est la photo d'un plat sans texte, identifie le plat et propose une recette maison économique fidèle.
 Classe la recette dans l'un de ces thèmes exacts : "Viande", "Italien", "Pâtes", "Monde", "Poisson", "Mijoté", "Fast food", "Desserts & Goûters".
 Estime également le nombre de points Weight Watchers (programme actuel) PAR PORTION (entier réaliste) en tenant compte des aliments à zéro point (fruits, légumes, œufs, blanc de poulet, poisson blanc, yaourt nature 0%).
 Classe chaque ingrédient dans l'un de ces rayons exacts : "Fruits & Légumes", "Épicerie & Pâtes", "Crèmerie", "Boucherie & Poissonnerie".
 Utilise uniquement ces unités : "g", "ml", "cl", "pièce", "gousses".
+${rawUrl ? `\nLien renseigné :\n${rawUrl}` : ''}
 ${rawText ? `\nTexte / légende de la vidéo :\n${rawText}` : ''}`
                     }
                 ];
 
+                if (photoFile) {
+                    btnText.textContent = 'Analyse de la photo...';
+                    const base64Photo = await compressImageFile(photoFile);
+                    parts.push({
+                        inlineData: {
+                            mimeType: 'image/jpeg',
+                            data: base64Photo
+                        }
+                    });
+                }
+
                 if (videoFile) {
-                    if (videoFile.size <= 18 * 1024 * 1024) {
+                    if (videoFile.size <= 8 * 1024 * 1024) {
+                        btnText.textContent = 'Analyse de la vidéo en cours...';
                         const base64Video = await fileToBase64(videoFile);
                         parts.push({
                             inlineData: {
@@ -1133,10 +1184,13 @@ ${rawText ? `\nTexte / légende de la vidéo :\n${rawText}` : ''}`
                             }
                         });
                     } else {
-                        btnText.textContent = 'Compression de la vidéo (audio + images)...';
+                        btnText.textContent = 'Compression vidéo (images + audio)...';
                         const compressedParts = await compressLargeVideo(videoFile);
+                        if (compressedParts.length === 0) {
+                            throw new Error('Impossible d’extraire les images ou l’audio de cette vidéo');
+                        }
                         parts.push(...compressedParts);
-                        btnText.textContent = 'Extraction IA en cours...';
+                        btnText.textContent = 'Transcription & extraction IA...';
                     }
                 }
 
@@ -1222,7 +1276,7 @@ ${rawText ? `\nTexte / légende de la vidéo :\n${rawText}` : ''}`
 
                 showToast('Recette extraite et pré-remplie ! Vérifie puis enregistre.', '✨');
             } catch (err) {
-                showToast('Impossible d’extraire la recette. Vérifie le texte ou la taille de la vidéo.', '⚠️');
+                showToast('Impossible de lire le lien ou la vidéo : essaie de coller le texte ou la légende.', '⚠️');
             } finally {
                 btn.disabled = false;
                 btnIcon.textContent = '🪄';
@@ -1830,4 +1884,4 @@ ${rawText ? `\nTexte / légende de la vidéo :\n${rawText}` : ''}`
         };
     </script>
 </body>
-</html> 
+</html>
