@@ -1,40 +1,313 @@
-<!-- ... existing code ... -->
-            recipeFilterTag: 'Tout',
-            recipeMaxPoints: 'Tous',
-            recipeSearch: '',
-            modalSlotContext: null,
-            modalFilterTag: 'Tout',
-            modalMaxPoints: 'Tous'
-        };
-<!-- ... existing code ... -->
-                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                        <div>
-                            <label class="block text-xs font-bold uppercase tracking-wider text-stone-600 mb-1">Catégorie / Thème</label>
-                            <select id="recipe-tag" class="w-full px-3 py-2.5 rounded-xl bg-sand/60 border border-stone-200 text-sm focus:outline-none focus:bg-white focus:border-terracotta-500">
-                                <option value="Pâtisserie">Pâtisserie</option>
-                                <option value="Viande + accompagnement">Viande + accompagnement</option>
-                                <option value="Recette italienne">Recette italienne</option>
-                                <option value="Pâtes + sauces">Pâtes + sauces</option>
-                                <option value="Cuisine du monde">Cuisine du monde</option>
-                                <option value="Poisson">Poisson</option>
-                                <option value="Plat mijoté">Plat mijoté</option>
-                                <option value="Fast food">Fast food</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold uppercase tracking-wider text-stone-600 mb-1">Portions / Parts</label>
-                            <input type="number" id="recipe-servings" value="4" min="1" max="30" class="w-full px-3 py-2.5 rounded-xl bg-sand/60 border border-stone-200 text-sm focus:outline-none focus:bg-white focus:border-terracotta-500" />
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold uppercase tracking-wider text-stone-600 mb-1">Coût estimé (€)</label>
-                            <input type="number" id="recipe-cost" value="8" step="0.5" min="0" class="w-full px-3 py-2.5 rounded-xl bg-sand/60 border border-stone-200 text-sm focus:outline-none focus:bg-white focus:border-terracotta-500" />
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold uppercase tracking-wider text-stone-600 mb-1">Points WW / part</label>
-                            <input type="number" id="recipe-ww-points" value="6" step="1" min="0" max="100" class="w-full px-3 py-2.5 rounded-xl bg-sand/60 border border-stone-200 text-sm focus:outline-none focus:bg-white focus:border-terracotta-500" />
-                        </div>
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Saveurs &amp; Budget — Planning, Pâtisseries &amp; Points WW</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <script>
+        if (typeof window.tailwind !== 'undefined') {
+            window.tailwind.config = {
+                theme: {
+                    extend: {
+                        fontFamily: {
+                            sans: ['Inter', 'system-ui', 'sans-serif'],
+                            serif: ['Fraunces', 'Georgia', 'serif']
+                        },
+                        colors: {
+                            cream: '#FAF7F2',
+                            sand: '#F2ECE1',
+                            terracotta: {
+                                50: '#FFF4EE',
+                                200: '#FAD0BA',
+                                300: '#F5B08E',
+                                500: '#E06D3B',
+                                600: '#C85626',
+                                700: '#A5431B'
+                            },
+                            sage: {
+                                50: '#F1F7F3',
+                                200: '#C7E0D0',
+                                700: '#2E6F4E'
+                            }
+                        }
+                    }
+                }
+            };
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Inter', system-ui, sans-serif;
+            background-color: #FAF7F2;
+            color: #1C1917;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .font-serif {
+            font-family: 'Fraunces', Georgia, serif;
+        }
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col bg-cream text-stone-900">
+
+    <!-- En-tête principal -->
+    <header class="sticky top-0 z-30 bg-white/95 backdrop-blur border-b border-stone-200/80">
+        <div class="max-w-6xl mx-auto px-3 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-2.5">
+            <div class="flex items-center gap-2.5 min-w-0">
+                <div class="w-10 h-10 rounded-2xl bg-terracotta-500 text-white flex items-center justify-center font-serif font-bold text-lg shadow-xs shrink-0">
+                    S&amp;B
+                </div>
+                <div class="min-w-0">
+                    <h1 class="font-serif text-lg sm:text-xl font-bold text-stone-900 truncate">Saveurs &amp; Budget</h1>
+                    <p id="storage-status" class="text-[11px] text-stone-500 truncate">Sauvegarde locale active</p>
+                </div>
+            </div>
+
+            <!-- Navigation principale -->
+            <nav class="flex items-center gap-1.5 bg-sand p-1 rounded-2xl border border-stone-200/70">
+                <button type="button" id="tab-week" onclick="switchTab('week')" class="px-3 sm:px-4 py-1.5 rounded-xl text-xs sm:text-sm font-bold transition bg-stone-900 text-white">
+                    Planning 7j
+                </button>
+                <button type="button" id="tab-recipes" onclick="switchTab('recipes')" class="px-3 sm:px-4 py-1.5 rounded-xl text-xs sm:text-sm font-bold transition text-stone-700 hover:bg-white/70">
+                    Recettes &amp; Pâtisseries
+                </button>
+                <button type="button" id="tab-shopping" onclick="switchTab('shopping')" class="px-3 sm:px-4 py-1.5 rounded-xl text-xs sm:text-sm font-bold transition text-stone-700 hover:bg-white/70">
+                    Courses
+                </button>
+            </nav>
+
+            <!-- Actions rapides -->
+            <div class="flex items-center gap-1.5">
+                <button type="button" onclick="openAddRecipeModal()" class="px-3 py-2 rounded-xl bg-terracotta-500 text-white text-xs font-bold hover:bg-terracotta-600 transition shadow-xs">
+                    + Recette / IA
+                </button>
+                <button type="button" onclick="openModal('modal-share')" class="px-3 py-2 rounded-xl bg-sand hover:bg-stone-200 text-stone-800 text-xs font-bold transition">
+                    Partager
+                </button>
+                <button type="button" onclick="openModal('modal-backup')" class="px-3 py-2 rounded-xl bg-sand hover:bg-stone-200 text-stone-800 text-xs font-bold transition">
+                    Sauvegarde
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Contenu principal -->
+    <main id="app-content" class="flex-1 max-w-6xl w-full mx-auto px-3 sm:px-6 py-5"></main>
+
+    <!-- Toast discret -->
+    <div id="toast" class="fixed bottom-5 left-1/2 -translate-x-1/2 z-50 hidden pointer-events-none">
+        <div id="toast-inner" class="px-4 py-2.5 rounded-2xl bg-stone-900 text-white text-xs sm:text-sm font-semibold shadow-lg flex items-center gap-2">
+            <span id="toast-icon">✓</span>
+            <span id="toast-message">Action effectuée</span>
+        </div>
+    </div>
+
+    <!-- Modale : Sélectionner une recette ou pâtisserie pour un créneau -->
+    <div id="modal-select-recipe" class="fixed inset-0 z-40 hidden bg-stone-950/50 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4">
+        <div class="bg-white w-full sm:max-w-2xl rounded-t-3xl sm:rounded-3xl max-h-[90vh] flex flex-col overflow-hidden shadow-xl border border-stone-200">
+            <div class="p-4 sm:p-5 border-b border-stone-200/80 flex items-start justify-between gap-3">
+                <div>
+                    <h3 id="select-modal-title" class="font-serif text-xl font-bold text-stone-900">Choisir une recette</h3>
+                    <p id="select-modal-subtitle" class="text-xs text-stone-500 mt-0.5">Sélectionnez un plat ou une pâtisserie</p>
+                </div>
+                <button type="button" onclick="closeModal('modal-select-recipe')" class="w-9 h-9 rounded-full bg-sand hover:bg-stone-200 flex items-center justify-center font-bold text-stone-700">✕</button>
+            </div>
+            <div class="p-4 border-b border-stone-100 space-y-3 bg-cream/60">
+                <input type="text" id="modal-recipe-search" oninput="renderSelectRecipeModalList()" placeholder="Rechercher par titre ou ingrédient..." class="w-full px-4 py-2.5 rounded-2xl bg-white border border-stone-200 text-sm focus:outline-none focus:border-terracotta-500" />
+                <div id="modal-recipe-tags" class="flex gap-1.5 overflow-x-auto no-scrollbar pb-1"></div>
+            </div>
+            <div id="modal-recipe-list" class="p-4 space-y-2.5 overflow-y-auto flex-1"></div>
+        </div>
+    </div>
+
+    <!-- Modale : Détail d'une recette -->
+    <div id="modal-recipe-detail" class="fixed inset-0 z-40 hidden bg-stone-950/50 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4">
+        <div class="bg-white w-full sm:max-w-2xl rounded-t-3xl sm:rounded-3xl max-h-[90vh] overflow-y-auto p-5 sm:p-6 shadow-xl border border-stone-200">
+            <div id="recipe-detail-content"></div>
+        </div>
+    </div>
+
+    <!-- Modale : Ajouter ou modifier une recette + Import photo / vidéo / texte / traduction FR -->
+    <div id="modal-add-recipe" class="fixed inset-0 z-40 hidden bg-stone-950/50 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4">
+        <div class="bg-white w-full sm:max-w-3xl rounded-t-3xl sm:rounded-3xl max-h-[92vh] overflow-y-auto p-5 sm:p-6 shadow-xl border border-stone-200 space-y-5">
+            <div class="flex items-start justify-between gap-3 border-b border-stone-200/80 pb-3.5">
+                <div>
+                    <h3 id="recipe-form-modal-title" class="font-serif text-2xl font-bold text-stone-900">Ajouter une recette</h3>
+                    <p class="text-xs text-stone-500 mt-0.5">Saisie manuelle ou extraction + traduction automatique en français (vidéo, photo manuscrite, texte)</p>
+                </div>
+                <button type="button" onclick="closeModal('modal-add-recipe')" class="w-9 h-9 rounded-full bg-sand hover:bg-stone-200 flex items-center justify-center font-bold text-stone-700">✕</button>
+            </div>
+
+            <!-- Bloc extraction IA -->
+            <div class="rounded-2xl bg-terracotta-50/70 border border-terracotta-200 p-4 space-y-3">
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                    <span class="text-xs font-extrabold uppercase tracking-wider text-terracotta-700">✨ Extraction &amp; Traduction auto en français (IA)</span>
+                    <button type="button" onclick="toggleApiKeyPanel()" class="text-xs font-bold text-stone-700 bg-white px-2.5 py-1 rounded-xl border border-stone-200 hover:bg-stone-50">
+                        ⚙️ Réglage clé API IA
+                    </button>
+                </div>
+
+                <div id="api-key-panel" class="hidden bg-white rounded-xl p-3 border border-stone-200 space-y-2">
+                    <label class="block text-xs font-bold text-stone-700">Clé API Google Gemini</label>
+                    <div class="flex gap-2">
+                        <input type="password" id="gemini-api-key-input" placeholder="AIza..." class="flex-1 px-3 py-2 rounded-xl bg-cream border border-stone-200 text-xs focus:outline-none focus:border-terracotta-500" />
+                        <button type="button" onclick="saveGeminiApiKey()" class="px-3.5 py-2 rounded-xl bg-stone-900 text-white text-xs font-bold">Enregistrer</button>
                     </div>
-<!-- ... existing code ... -->
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    <input type="text" id="social-raw-url" placeholder="Lien vidéo ou recette (optionnel)" class="w-full px-3.5 py-2 rounded-xl bg-white border border-stone-200 text-xs focus:outline-none focus:border-terracotta-500" />
+                    <label class="flex items-center justify-center gap-2 px-3.5 py-2 rounded-xl bg-white border border-dashed border-terracotta-300 text-xs font-bold text-terracotta-700 cursor-pointer hover:bg-terracotta-50 transition">
+                        <span>📷 / 🎬 Choisir photo ou vidéo</span>
+                        <input type="file" id="social-media-file" accept="image/*,video/*" onchange="handleSocialMediaChange(event)" class="hidden" />
+                    </label>
+                </div>
+
+                <div id="social-media-preview" class="hidden text-xs bg-white rounded-xl p-2.5 border border-stone-200 flex items-center justify-between gap-2">
+                    <span id="social-media-label" class="font-semibold text-stone-700 truncate"></span>
+                    <button type="button" onclick="clearSocialMediaAttachment()" class="text-xs font-bold text-red-600 shrink-0">Retirer</button>
+                </div>
+
+                <textarea id="social-raw-text" rows="2" placeholder="Collez ici une recette, une légende ou des notes dans n'importe quelle langue (traduction automatique en français)..." class="w-full px-3.5 py-2 rounded-xl bg-white border border-stone-200 text-xs focus:outline-none focus:border-terracotta-500"></textarea>
+
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                    <button type="button" id="extract-social-btn" onclick="extractRecipeFromSocial()" class="px-4 py-2 rounded-xl bg-terracotta-500 hover:bg-terracotta-600 text-white text-xs font-bold transition shadow-xs">
+                        Extraire et remplir la recette
+                    </button>
+                    <p id="social-extract-status" class="hidden text-xs font-medium text-stone-700"></p>
+                </div>
+            </div>
+
+            <!-- Formulaire de la recette -->
+            <form id="recipe-form" onsubmit="handleSaveRecipe(event)" class="space-y-4">
+                <input type="hidden" id="editing-recipe-id" value="" />
+
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-stone-600 mb-1">Titre de la recette *</label>
+                    <input type="text" id="recipe-title" required placeholder="Ex: Tarte aux pommes légère" class="w-full px-3.5 py-2.5 rounded-xl bg-sand/60 border border-stone-200 text-sm focus:outline-none focus:bg-white focus:border-terracotta-500" />
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-stone-600 mb-1">Catégorie / Thème</label>
+                        <select id="recipe-tag" class="w-full px-3 py-2.5 rounded-xl bg-sand/60 border border-stone-200 text-sm focus:outline-none focus:bg-white focus:border-terracotta-500">
+                            <option value="Pâtisserie">Pâtisserie</option>
+                            <option value="Viande + accompagnement">Viande + accompagnement</option>
+                            <option value="Recette italienne">Recette italienne</option>
+                            <option value="Pâtes + sauces">Pâtes + sauces</option>
+                            <option value="Cuisine du monde">Cuisine du monde</option>
+                            <option value="Poisson">Poisson</option>
+                            <option value="Plat mijoté">Plat mijoté</option>
+                            <option value="Fast food">Fast food</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-stone-600 mb-1">Portions / Parts</label>
+                        <input type="number" id="recipe-servings" value="4" min="1" max="30" class="w-full px-3 py-2.5 rounded-xl bg-sand/60 border border-stone-200 text-sm focus:outline-none focus:bg-white focus:border-terracotta-500" />
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-stone-600 mb-1">Coût estimé (€)</label>
+                        <input type="number" id="recipe-cost" value="8" step="0.5" min="0" class="w-full px-3 py-2.5 rounded-xl bg-sand/60 border border-stone-200 text-sm focus:outline-none focus:bg-white focus:border-terracotta-500" />
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-stone-600 mb-1">Points WW / part</label>
+                        <input type="number" id="recipe-ww-points" value="6" step="1" min="0" max="100" class="w-full px-3 py-2.5 rounded-xl bg-sand/60 border border-stone-200 text-sm focus:outline-none focus:bg-white focus:border-terracotta-500" />
+                    </div>
+                </div>
+
+                <div class="space-y-2">
+                    <div class="flex items-center justify-between">
+                        <label class="block text-xs font-bold uppercase tracking-wider text-stone-600">Ingrédients</label>
+                        <button type="button" onclick="addIngredientRow()" class="text-xs font-bold text-terracotta-600 hover:text-terracotta-700">+ Ajouter un ingrédient</button>
+                    </div>
+                    <div id="ingredients-inputs" class="space-y-2"></div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-stone-600 mb-1">Étapes de préparation (1 étape par ligne)</label>
+                    <textarea id="recipe-steps" rows="4" placeholder="1. Préchauffer le four à 180°C...&#10;2. Mélanger et enfourner..." class="w-full px-3.5 py-2.5 rounded-xl bg-sand/60 border border-stone-200 text-sm focus:outline-none focus:bg-white focus:border-terracotta-500"></textarea>
+                </div>
+
+                <div class="flex items-center justify-end gap-2 pt-2">
+                    <button type="button" onclick="closeModal('modal-add-recipe')" class="px-4 py-2.5 rounded-xl bg-sand text-stone-700 text-xs sm:text-sm font-bold">Annuler</button>
+                    <button type="submit" class="px-5 py-2.5 rounded-xl bg-terracotta-500 hover:bg-terracotta-600 text-white text-xs sm:text-sm font-bold shadow-xs">Enregistrer la recette</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modale : Sauvegarde & Restauration JSON -->
+    <div id="modal-backup" class="fixed inset-0 z-40 hidden bg-stone-950/50 backdrop-blur-xs flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-md rounded-3xl p-5 sm:p-6 shadow-xl border border-stone-200 space-y-4">
+            <div class="flex items-center justify-between">
+                <h3 class="font-serif text-xl font-bold text-stone-900">Sauvegarde (.json)</h3>
+                <button type="button" onclick="closeModal('modal-backup')" class="w-8 h-8 rounded-full bg-sand flex items-center justify-center font-bold text-stone-700">✕</button>
+            </div>
+            <p class="text-xs text-stone-600 leading-relaxed">
+                Vos données sont déjà enregistrées automatiquement dans ce navigateur. Exportez un fichier <strong>.json</strong> pour garder une copie de sécurité ou transférer vos recettes.
+            </p>
+            <div class="flex flex-col gap-2.5">
+                <button type="button" onclick="exportBackupFile()" class="w-full py-2.5 px-4 rounded-2xl bg-stone-900 text-white text-xs sm:text-sm font-bold hover:bg-stone-800 transition">
+                    Télécharger une sauvegarde (.json)
+                </button>
+                <label class="w-full py-2.5 px-4 rounded-2xl bg-sand hover:bg-stone-200 text-stone-800 text-xs sm:text-sm font-bold text-center cursor-pointer transition">
+                    Choisir un fichier .json à restaurer
+                    <input type="file" accept=".json,application/json" onchange="importBackupFile(event)" class="hidden" />
+                </label>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modale : Partager l'application -->
+    <div id="modal-share" class="fixed inset-0 z-40 hidden bg-stone-950/50 backdrop-blur-xs flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-md rounded-3xl p-5 sm:p-6 shadow-xl border border-stone-200 space-y-4">
+            <div class="flex items-center justify-between">
+                <h3 class="font-serif text-xl font-bold text-stone-900">Partager l'application</h3>
+                <button type="button" onclick="closeModal('modal-share')" class="w-8 h-8 rounded-full bg-sand flex items-center justify-center font-bold text-stone-700">✕</button>
+            </div>
+            <p class="text-xs text-stone-600 leading-relaxed">
+                Chaque utilisateur dispose de son propre planning et de ses propres recettes enregistrés dans son navigateur.
+            </p>
+            <div class="space-y-2">
+                <label class="block text-xs font-bold text-stone-700">Lien de l'application</label>
+                <input type="text" id="share-url-input" class="w-full px-3.5 py-2.5 rounded-xl bg-cream border border-stone-200 text-xs font-medium text-stone-800" />
+            </div>
+            <div class="flex gap-2">
+                <button type="button" onclick="copyShareUrl()" class="flex-1 py-2.5 px-4 rounded-xl bg-terracotta-500 hover:bg-terracotta-600 text-white text-xs font-bold transition">
+                    Copier le lien
+                </button>
+                <button type="button" onclick="nativeShareApp()" class="py-2.5 px-4 rounded-xl bg-sand hover:bg-stone-200 text-stone-800 text-xs font-bold transition">
+                    Partager…
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const STORAGE_KEY = 'saveurs_budget_state_v2';
+        const GEMINI_KEY_STORAGE = 'saveurs_budget_gemini_key_v1';
+
+        const DAYS = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];
+        const DAY_THEMES = [
+            { code: 'J1', label: 'Viande + accompagnement' },
+            { code: 'J2', label: 'Recette italienne' },
+            { code: 'J3', label: 'Pâtes + sauces' },
+            { code: 'J4', label: 'Cuisine du monde' },
+            { code: 'J5', label: 'Poisson' },
+            { code: 'J6', label: 'Plat mijoté' },
+            { code: 'J7', label: 'Fast food' }
+        ];
+
         const INITIAL_RECIPES = [
             {
                 id: 'rec-1',
@@ -44,7 +317,18 @@
                 cost: 6.5,
                 wwPoints: 7,
                 isCustom: false,
-<!-- ... existing code ... -->
+                ingredients: [
+                    { name: 'Pâtes penne', qty: 400, unit: 'g', category: 'Épicerie' },
+                    { name: 'Thon au naturel', qty: 2, unit: 'boîtes', category: 'Viandes & Poissons' },
+                    { name: 'Crème légère 15%', qty: 150, unit: 'ml', category: 'Frais & Crémerie' },
+                    { name: 'Citron jaune', qty: 1, unit: 'pièce', category: 'Fruits & Légumes' }
+                ],
+                steps: [
+                    'Faire cuire les pâtes dans l’eau bouillante salée puis égoutter.',
+                    'Mélanger le thon égoutté, la crème légère et le jus/zeste de citron.',
+                    'Incorporer aux pâtes chaudes et servir aussitôt.'
+                ]
+            },
             {
                 id: 'rec-2',
                 title: 'Poulet rôti au citron & pommes de terre',
@@ -53,7 +337,18 @@
                 cost: 11.5,
                 wwPoints: 8,
                 isCustom: false,
-<!-- ... existing code ... -->
+                ingredients: [
+                    { name: 'Hauts de cuisse de poulet', qty: 4, unit: 'pièces', category: 'Viandes & Poissons' },
+                    { name: 'Pommes de terre', qty: 700, unit: 'g', category: 'Fruits & Légumes' },
+                    { name: 'Huile d’olive', qty: 2, unit: 'c. à soupe', category: 'Épicerie' },
+                    { name: 'Ail', qty: 2, unit: 'gousses', category: 'Fruits & Légumes' }
+                ],
+                steps: [
+                    'Préchauffer le four à 200°C.',
+                    'Disposer les pommes de terre coupées et le poulet dans un plat avec huile, ail et herbes.',
+                    'Enfourner 40 à 45 minutes en retournant à mi-cuisson.'
+                ]
+            },
             {
                 id: 'rec-3',
                 title: 'Bowl poulet curry coco & riz basmati',
@@ -62,7 +357,18 @@
                 cost: 9.8,
                 wwPoints: 9,
                 isCustom: false,
-<!-- ... existing code ... -->
+                ingredients: [
+                    { name: 'Blancs de poulet', qty: 450, unit: 'g', category: 'Viandes & Poissons' },
+                    { name: 'Riz basmati', qty: 300, unit: 'g', category: 'Épicerie' },
+                    { name: 'Lait de coco léger', qty: 250, unit: 'ml', category: 'Épicerie' },
+                    { name: 'Poivron rouge', qty: 1, unit: 'pièce', category: 'Fruits & Légumes' }
+                ],
+                steps: [
+                    'Cuire le riz basmati selon les instructions du paquet.',
+                    'Faire revenir les dés de poulet et le poivron émincé, ajouter curry et lait de coco.',
+                    'Mijoter 12 minutes et servir sur le riz.'
+                ]
+            },
             {
                 id: 'rec-4',
                 title: 'Pavés de saumon & légumes verts',
@@ -71,7 +377,17 @@
                 cost: 13.0,
                 wwPoints: 6,
                 isCustom: false,
-<!-- ... existing code ... -->
+                ingredients: [
+                    { name: 'Pavés de saumon', qty: 4, unit: 'pièces', category: 'Viandes & Poissons' },
+                    { name: 'Haricots verts', qty: 400, unit: 'g', category: 'Fruits & Légumes' },
+                    { name: 'Courgettes', qty: 2, unit: 'pièces', category: 'Fruits & Légumes' }
+                ],
+                steps: [
+                    'Cuire les haricots verts et rondelles de courgette à la vapeur ou à la poêle.',
+                    'Saisir les pavés de saumon 3 à 4 minutes de chaque côté.',
+                    'Assaisonner et servir bien chaud.'
+                ]
+            },
             {
                 id: 'rec-5',
                 title: 'Gnocchis gratinés tomate & mozzarella',
@@ -80,7 +396,17 @@
                 cost: 7.4,
                 wwPoints: 8,
                 isCustom: false,
-<!-- ... existing code ... -->
+                ingredients: [
+                    { name: 'Gnocchis frais', qty: 500, unit: 'g', category: 'Frais & Crémerie' },
+                    { name: 'Coulis de tomate', qty: 400, unit: 'g', category: 'Épicerie' },
+                    { name: 'Mozzarella', qty: 125, unit: 'g', category: 'Frais & Crémerie' }
+                ],
+                steps: [
+                    'Verser la moitié du coulis dans un plat à gratin, ajouter les gnocchis puis le reste de sauce.',
+                    'Parsemer de mozzarella tranchée.',
+                    'Gratiner 15 minutes à 200°C.'
+                ]
+            },
             {
                 id: 'rec-6',
                 title: 'Bœuf bourguignon express mijoté',
@@ -89,7 +415,18 @@
                 cost: 12.5,
                 wwPoints: 9,
                 isCustom: false,
-<!-- ... existing code ... -->
+                ingredients: [
+                    { name: 'Bœuf à mijoter', qty: 600, unit: 'g', category: 'Viandes & Poissons' },
+                    { name: 'Carottes', qty: 4, unit: 'pièces', category: 'Fruits & Légumes' },
+                    { name: 'Oignons', qty: 2, unit: 'pièces', category: 'Fruits & Légumes' },
+                    { name: 'Bouillon de bœuf', qty: 300, unit: 'ml', category: 'Épicerie' }
+                ],
+                steps: [
+                    'Faire dorer la viande, les oignons et les carottes en rondelles.',
+                    'Mouiller avec le bouillon et couvrir.',
+                    'Laisser mijoter doucement jusqu’à ce que la viande soit tendre.'
+                ]
+            },
             {
                 id: 'rec-7',
                 title: 'Burgers maison cheddar & frites au four',
@@ -98,7 +435,18 @@
                 cost: 10.2,
                 wwPoints: 12,
                 isCustom: false,
-<!-- ... existing code ... -->
+                ingredients: [
+                    { name: 'Pains à burger', qty: 4, unit: 'pièces', category: 'Boulangerie' },
+                    { name: 'Steaks hachés 5% MG', qty: 4, unit: 'pièces', category: 'Viandes & Poissons' },
+                    { name: 'Cheddar allégé', qty: 4, unit: 'tranches', category: 'Frais & Crémerie' },
+                    { name: 'Pommes de terre', qty: 600, unit: 'g', category: 'Fruits & Légumes' }
+                ],
+                steps: [
+                    'Couper les pommes de terre en frites et les cuire au four 25 minutes.',
+                    'Cuire les steaks hachés et déposer le cheddar dessus en fin de cuisson.',
+                    'Garnir les pains toastés et servir avec les frites.'
+                ]
+            },
             {
                 id: 'pat-1',
                 title: 'Gâteau au yaourt citronné',
@@ -107,7 +455,18 @@
                 cost: 3.8,
                 wwPoints: 6,
                 isCustom: false,
-<!-- ... existing code ... -->
+                ingredients: [
+                    { name: 'Yaourt nature', qty: 1, unit: 'pot', category: 'Frais & Crémerie' },
+                    { name: 'Farine', qty: 200, unit: 'g', category: 'Épicerie' },
+                    { name: 'Œufs', qty: 3, unit: 'pièces', category: 'Frais & Crémerie' },
+                    { name: 'Sucre', qty: 120, unit: 'g', category: 'Épicerie' }
+                ],
+                steps: [
+                    'Mélanger le yaourt, le sucre, les œufs puis la farine et la levure.',
+                    'Verser dans un moule chemisé.',
+                    'Cuire 30 minutes à 180°C.'
+                ]
+            },
             {
                 id: 'pat-2',
                 title: 'Moelleux chocolat fondant',
@@ -116,7 +475,18 @@
                 cost: 4.9,
                 wwPoints: 9,
                 isCustom: false,
-<!-- ... existing code ... -->
+                ingredients: [
+                    { name: 'Chocolat noir pâtissier', qty: 150, unit: 'g', category: 'Épicerie' },
+                    { name: 'Beurre', qty: 80, unit: 'g', category: 'Frais & Crémerie' },
+                    { name: 'Œufs', qty: 3, unit: 'pièces', category: 'Frais & Crémerie' },
+                    { name: 'Farine', qty: 60, unit: 'g', category: 'Épicerie' }
+                ],
+                steps: [
+                    'Faire fondre le chocolat et le beurre.',
+                    'Incorporer les œufs battus avec le sucre puis la farine.',
+                    'Cuire 12 à 15 minutes à 180°C pour garder un cœur fondant.'
+                ]
+            },
             {
                 id: 'pat-3',
                 title: 'Tarte rustique aux pommes',
@@ -125,7 +495,17 @@
                 cost: 5.2,
                 wwPoints: 7,
                 isCustom: false,
-<!-- ... existing code ... -->
+                ingredients: [
+                    { name: 'Pâte brisée', qty: 1, unit: 'rouleau', category: 'Boulangerie' },
+                    { name: 'Pommes', qty: 4, unit: 'pièces', category: 'Fruits & Légumes' },
+                    { name: 'Compote sans sucre ajouté', qty: 150, unit: 'g', category: 'Épicerie' }
+                ],
+                steps: [
+                    'Étaler la pâte et garnir le fond de compote.',
+                    'Disposer les lamelles de pommes et replier les bords.',
+                    'Cuire 35 minutes à 180°C.'
+                ]
+            },
             {
                 id: 'pat-4',
                 title: 'Cookies pépites de chocolat',
@@ -134,7 +514,18 @@
                 cost: 4.4,
                 wwPoints: 6,
                 isCustom: false,
-<!-- ... existing code ... -->
+                ingredients: [
+                    { name: 'Farine', qty: 180, unit: 'g', category: 'Épicerie' },
+                    { name: 'Pépites de chocolat', qty: 100, unit: 'g', category: 'Épicerie' },
+                    { name: 'Beurre mou', qty: 75, unit: 'g', category: 'Frais & Crémerie' },
+                    { name: 'Œuf', qty: 1, unit: 'pièce', category: 'Frais & Crémerie' }
+                ],
+                steps: [
+                    'Mélanger le beurre, le sucre et l’œuf, puis ajouter la farine et les pépites.',
+                    'Former des boules sur plaque.',
+                    'Cuire 10 à 12 minutes à 180°C.'
+                ]
+            },
             {
                 id: 'pat-5',
                 title: 'Crème dessert vanille maison',
@@ -143,7 +534,18 @@
                 cost: 3.5,
                 wwPoints: 4,
                 isCustom: false,
-<!-- ... existing code ... -->
+                ingredients: [
+                    { name: 'Lait demi-écrémé', qty: 500, unit: 'ml', category: 'Frais & Crémerie' },
+                    { name: 'Maïzena', qty: 35, unit: 'g', category: 'Épicerie' },
+                    { name: 'Œuf', qty: 1, unit: 'pièce', category: 'Frais & Crémerie' },
+                    { name: 'Extrait de vanille', qty: 1, unit: 'c. à café', category: 'Épicerie' }
+                ],
+                steps: [
+                    'Fouetter la maïzena, l’œuf, le sucre et un peu de lait froid.',
+                    'Verser le reste du lait chaud et faire épaissir sur feu doux en remuant.',
+                    'Répartir en ramequins et réfrigérer.'
+                ]
+            },
             {
                 id: 'pat-6',
                 title: 'Cake marbré vanille & cacao',
@@ -152,7 +554,18 @@
                 cost: 4.1,
                 wwPoints: 7,
                 isCustom: false,
-<!-- ... existing code ... -->
+                ingredients: [
+                    { name: 'Farine', qty: 200, unit: 'g', category: 'Épicerie' },
+                    { name: 'Œufs', qty: 3, unit: 'pièces', category: 'Frais & Crémerie' },
+                    { name: 'Cacao en poudre non sucré', qty: 25, unit: 'g', category: 'Épicerie' },
+                    { name: 'Lait', qty: 100, unit: 'ml', category: 'Frais & Crémerie' }
+                ],
+                steps: [
+                    'Préparer une pâte nature puis diviser en deux parts.',
+                    'Incorporer le cacao dans la seconde moitié.',
+                    'Alterner les couches dans un moule à cake et cuire 35 minutes à 175°C.'
+                ]
+            },
             {
                 id: 'pat-7',
                 title: 'Compote pommes-cannelle & crumble',
@@ -161,7 +574,274 @@
                 cost: 4.6,
                 wwPoints: 5,
                 isCustom: false,
-<!-- ... existing code ... -->
+                ingredients: [
+                    { name: 'Pommes', qty: 5, unit: 'pièces', category: 'Fruits & Légumes' },
+                    { name: 'Flocons d’avoine', qty: 90, unit: 'g', category: 'Épicerie' },
+                    { name: 'Beurre', qty: 40, unit: 'g', category: 'Frais & Crémerie' },
+                    { name: 'Cannelle', qty: 1, unit: 'c. à café', category: 'Épicerie' }
+                ],
+                steps: [
+                    'Disposer les pommes en dés avec la cannelle dans un plat.',
+                    'Sabler les flocons d’avoine, un peu de farine/sucre et le beurre.',
+                    'Cuire 25 minutes à 180°C.'
+                ]
+            }
+        ];
+
+        let state = {
+            activeTab: 'week',
+            selectedDay: 0,
+            recipes: [],
+            mealPlan: [],
+            manualItems: [],
+            quickChecklist: [],
+            checkedAutoItems: {},
+            recipeFilterTag: 'Tout',
+            recipeMaxPoints: 'Tous',
+            recipeSearch: '',
+            modalSlotContext: null,
+            modalFilterTag: 'Tout',
+            modalMaxPoints: 'Tous'
+        };
+
+        let socialMediaAttachment = null;
+
+        function escapeHtml(str) {
+            return String(str ?? '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        function showToast(message, icon = '✓') {
+            const toast = document.getElementById('toast');
+            const msgEl = document.getElementById('toast-message');
+            const iconEl = document.getElementById('toast-icon');
+            if (!toast || !msgEl || !iconEl) return;
+            msgEl.textContent = message;
+            iconEl.textContent = icon;
+            toast.classList.remove('hidden');
+            clearTimeout(window.__toastTimer);
+            window.__toastTimer = setTimeout(() => {
+                toast.classList.add('hidden');
+            }, 2600);
+        }
+
+        function openModal(id) {
+            const el = document.getElementById(id);
+            if (!el) return;
+            if (id === 'modal-share') {
+                const input = document.getElementById('share-url-input');
+                if (input && !input.value) {
+                    const href = window.location.href;
+                    input.value = href.startsWith('http') ? href : 'https://TON-PSEUDO.github.io/saveurs-budget/';
+                }
+            }
+            el.classList.remove('hidden');
+        }
+
+        function closeModal(id) {
+            document.getElementById(id)?.classList.add('hidden');
+        }
+
+        function saveState() {
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify({
+                    recipes: state.recipes,
+                    mealPlan: state.mealPlan,
+                    manualItems: state.manualItems,
+                    quickChecklist: state.quickChecklist,
+                    checkedAutoItems: state.checkedAutoItems
+                }));
+                updateStorageStatus(true);
+            } catch (err) {
+                console.warn('Sauvegarde localStorage impossible:', err);
+                updateStorageStatus(false);
+            }
+        }
+
+        function updateStorageStatus(ok) {
+            const el = document.getElementById('storage-status');
+            if (!el) return;
+            el.textContent = ok ? 'Sauvegarde locale active' : 'Mode mémoire temporaire';
+        }
+
+        function initDefaultWeek() {
+            state.recipes = JSON.parse(JSON.stringify(INITIAL_RECIPES));
+            const fallbackPastryIds = ['pat-1', 'pat-2', 'pat-3', 'pat-4', 'pat-5', 'pat-6', 'pat-7'];
+            state.mealPlan = [
+                { id: 'mp-1', dayIndex: 0, slot: 'lunch', recipeId: 'rec-2', servings: 4 },
+                { id: 'mp-2', dayIndex: 0, slot: 'dinner', recipeId: 'rec-6', servings: 4 },
+                { id: 'mp-3', dayIndex: 1, slot: 'lunch', recipeId: 'rec-5', servings: 4 },
+                { id: 'mp-4', dayIndex: 2, slot: 'lunch', recipeId: 'rec-1', servings: 4 },
+                { id: 'mp-5', dayIndex: 3, slot: 'dinner', recipeId: 'rec-3', servings: 4 },
+                { id: 'mp-6', dayIndex: 4, slot: 'lunch', recipeId: 'rec-4', servings: 4 },
+                { id: 'mp-7', dayIndex: 6, slot: 'dinner', recipeId: 'rec-7', servings: 4 },
+                ...DAYS.map((_, idx) => ({
+                    id: `mp-pat-${idx + 1}`,
+                    dayIndex: idx,
+                    slot: 'pastry',
+                    recipeId: fallbackPastryIds[idx % fallbackPastryIds.length],
+                    servings: 6
+                }))
+            ];
+            state.manualItems = [
+                { id: 'man-1', name: 'Pain de campagne', qty: 1, unit: 'pièce', category: 'Boulangerie', checked: false }
+            ];
+            state.quickChecklist = [
+                { id: 'chk-1', label: 'Papier toilette / Essuie-tout', checked: false },
+                { id: 'chk-2', label: 'Liquide vaisselle / Lessive', checked: false }
+            ];
+            state.checkedAutoItems = {};
+            saveState();
+        }
+
+        function loadState() {
+            try {
+                const raw = localStorage.getItem(STORAGE_KEY);
+                if (raw) {
+                    const parsed = JSON.parse(raw);
+                    if (Array.isArray(parsed.recipes) && parsed.recipes.length > 0) {
+                        state.recipes = parsed.recipes;
+                        state.mealPlan = Array.isArray(parsed.mealPlan) ? parsed.mealPlan : [];
+                        state.manualItems = Array.isArray(parsed.manualItems) ? parsed.manualItems : [];
+                        state.quickChecklist = Array.isArray(parsed.quickChecklist) ? parsed.quickChecklist : [];
+                        state.checkedAutoItems = parsed.checkedAutoItems || {};
+                        updateStorageStatus(true);
+                        return;
+                    }
+                }
+            } catch (err) {
+                console.warn('Lecture localStorage impossible:', err);
+            }
+            initDefaultWeek();
+        }
+
+        function getRecipeById(id) {
+            return state.recipes.find(r => r.id === id);
+        }
+
+        function switchTab(tab) {
+            state.activeTab = tab;
+            ['week', 'recipes', 'shopping'].forEach(t => {
+                const btn = document.getElementById(`tab-${t}`);
+                if (!btn) return;
+                if (t === tab) {
+                    btn.className = 'px-3 sm:px-4 py-1.5 rounded-xl text-xs sm:text-sm font-bold transition bg-stone-900 text-white';
+                } else {
+                    btn.className = 'px-3 sm:px-4 py-1.5 rounded-xl text-xs sm:text-sm font-bold transition text-stone-700 hover:bg-white/70';
+                }
+            });
+            render();
+        }
+
+        function getSlotEntry(dayIndex, slot) {
+            return state.mealPlan.find(mp => mp.dayIndex === dayIndex && mp.slot === slot);
+        }
+
+        function assignRecipeToSlot(dayIndex, slot, recipeId) {
+            const recipe = getRecipeById(recipeId);
+            if (!recipe) return;
+            state.mealPlan = state.mealPlan.filter(mp => !(mp.dayIndex === dayIndex && mp.slot === slot));
+            state.mealPlan.push({
+                id: `mp-${dayIndex}-${slot}-${Date.now()}`,
+                dayIndex,
+                slot,
+                recipeId,
+                servings: recipe.servings || 4
+            });
+            saveState();
+            closeModal('modal-select-recipe');
+            render();
+            showToast(`${DAYS[dayIndex]} : ${recipe.title}`);
+        }
+
+        function removeSlotEntry(dayIndex, slot) {
+            state.mealPlan = state.mealPlan.filter(mp => !(mp.dayIndex === dayIndex && mp.slot === slot));
+            saveState();
+            render();
+            showToast('Créneau vidé');
+        }
+
+        function adjustSlotServings(dayIndex, slot, delta) {
+            const entry = getSlotEntry(dayIndex, slot);
+            if (!entry) return;
+            entry.servings = Math.max(1, (entry.servings || 4) + delta);
+            saveState();
+            render();
+        }
+
+        function autoFillWeek() {
+            const newPlan = [];
+            const pastries = state.recipes.filter(r => r.tag === 'Pâtisserie');
+            const usedMainIds = new Set();
+
+            for (let d = 0; d < 7; d++) {
+                const theme = DAY_THEMES[d];
+                const matching = state.recipes.filter(r => r.tag === theme.label);
+                const pool = matching.length > 0 ? matching : state.recipes.filter(r => r.tag !== 'Pâtisserie');
+                const unused = pool.filter(r => !usedMainIds.has(r.id));
+                const mainRecipe = unused[0] || pool[d % pool.length] || state.recipes[0];
+
+                if (mainRecipe) {
+                    usedMainIds.add(mainRecipe.id);
+                    newPlan.push({
+                        id: `mp-auto-main-${d}-${Date.now()}`,
+                        dayIndex: d,
+                        slot: d % 2 === 0 ? 'lunch' : 'dinner',
+                        recipeId: mainRecipe.id,
+                        servings: mainRecipe.servings || 4
+                    });
+                }
+
+                if (pastries.length > 0) {
+                    const patRecipe = pastries[d % pastries.length];
+                    newPlan.push({
+                        id: `mp-auto-pat-${d}-${Date.now()}`,
+                        dayIndex: d,
+                        slot: 'pastry',
+                        recipeId: patRecipe.id,
+                        servings: patRecipe.servings || 6
+                    });
+                }
+            }
+
+            state.mealPlan = newPlan;
+            saveState();
+            render();
+            showToast('Semaine remplie (J1→J7 + 7 pâtisseries)');
+        }
+
+        function matchesPointsFilter(recipe, maxPointsFilter) {
+            if (!maxPointsFilter || maxPointsFilter === 'Tous') return true;
+            const pts = Number(recipe.wwPoints ?? 6);
+            if (maxPointsFilter === '<=5') return pts <= 5;
+            if (maxPointsFilter === '<=8') return pts <= 8;
+            if (maxPointsFilter === '<=10') return pts <= 10;
+            if (maxPointsFilter === '>10') return pts > 10;
+            return true;
+        }
+
+        function renderSlotCard(dayIndex, slot, label) {
+            const entry = getSlotEntry(dayIndex, slot);
+            const recipe = entry ? getRecipeById(entry.recipeId) : null;
+
+            if (!recipe) {
+                return `
+                    <div class="rounded-2xl bg-cream border border-dashed border-stone-300 p-3.5 flex items-center justify-between gap-2">
+                        <div>
+                            <span class="text-[11px] font-bold uppercase tracking-wider text-stone-500">${label}</span>
+                            <p class="text-xs text-stone-400 mt-0.5">Aucun élément prévu</p>
+                        </div>
+                        <button type="button" onclick="openSelectRecipeModal(${dayIndex}, '${slot}')" class="px-3 py-1.5 rounded-xl bg-white hover:bg-terracotta-50 text-terracotta-600 border border-stone-200 text-xs font-bold transition shrink-0">
+                            + Choisir
+                        </button>
+                    </div>
+                `;
+            }
+
             const servings = entry.servings || recipe.servings || 4;
             const ratio = servings / (recipe.servings || 4);
             const estCost = ((recipe.cost || 0) * ratio).toFixed(2);
@@ -174,25 +854,92 @@
                             <div class="flex items-center gap-1.5 flex-wrap">
                                 <span class="text-[11px] font-bold uppercase tracking-wider text-terracotta-600">${label}</span>
                                 <span class="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-white text-stone-600 border border-stone-200/70">${escapeHtml(recipe.tag)}</span>
-                                <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-terracotta-50 text-terracotta-700 border border-terracotta-200/70">${wwPts} pts WW</span>
+                                <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200/80">${wwPts} pts WW</span>
                             </div>
-                            <button type="button" onclick="openRecipeDetail('${recipe.id}', ${servings})" class="text-left font-bold text-sm sm:text-base text-stone-900 hover:text-terracotta-600 transition mt-1 line-clamp-1">
+                            <button type="button" onclick="openRecipeDetail('${recipe.id}', ${servings})" class="text-left font-bold text-sm sm:text-base text-stone-900 hover:text-terracotta-600 transition mt-1 block truncate">
                                 ${escapeHtml(recipe.title)}
                             </button>
                         </div>
-                        <div class="text-right shrink-0">
-                            <span class="text-xs font-bold text-sage-700 bg-sage-50 border border-sage-200/70 px-2 py-0.5 rounded-lg">${estCost} €</span>
+                        <span class="text-xs font-bold text-sage-700 bg-sage-50 border border-sage-200/70 px-2 py-0.5 rounded-lg shrink-0">${estCost} €</span>
+                    </div>
+
+                    <div class="flex items-center justify-between gap-2 pt-1 border-t border-stone-200/60 text-xs">
+                        <div class="flex items-center gap-1.5">
+                            <button type="button" onclick="adjustSlotServings(${dayIndex}, '${slot}', -1)" class="w-6 h-6 rounded-lg bg-white border border-stone-200 font-bold text-stone-700 hover:bg-stone-100">-</button>
+                            <span class="font-semibold text-stone-700 px-1">${servings} parts</span>
+                            <button type="button" onclick="adjustSlotServings(${dayIndex}, '${slot}', 1)" class="w-6 h-6 rounded-lg bg-white border border-stone-200 font-bold text-stone-700 hover:bg-stone-100">+</button>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <button type="button" onclick="openSelectRecipeModal(${dayIndex}, '${slot}')" class="font-bold text-terracotta-600 hover:underline">Changer</button>
+                            <button type="button" onclick="removeSlotEntry(${dayIndex}, '${slot}')" class="font-bold text-stone-400 hover:text-red-600">Retirer</button>
                         </div>
                     </div>
-<!-- ... existing code ... -->
-        function matchesPointsFilter(recipe, maxPointsFilter) {
-            if (!maxPointsFilter || maxPointsFilter === 'Tous') return true;
-            const pts = Number(recipe.wwPoints ?? 6);
-            if (maxPointsFilter === '<=5') return pts <= 5;
-            if (maxPointsFilter === '<=8') return pts <= 8;
-            if (maxPointsFilter === '<=10') return pts <= 10;
-            if (maxPointsFilter === '>10') return pts > 10;
-            return true;
+                </div>
+            `;
+        }
+
+        function renderWeekTab(container) {
+            let totalWeekCost = 0;
+            let pastryCount = 0;
+            state.mealPlan.forEach(mp => {
+                const rec = getRecipeById(mp.recipeId);
+                if (rec) {
+                    const factor = (mp.servings || rec.servings || 4) / (rec.servings || 4);
+                    totalWeekCost += (rec.cost || 0) * factor;
+                    if (mp.slot === 'pastry') pastryCount++;
+                }
+            });
+
+            container.innerHTML = `
+                <div class="space-y-5">
+                    <div class="bg-white rounded-3xl p-4 sm:p-5 border border-stone-200/80 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div class="space-y-1">
+                            <h2 class="font-serif text-2xl font-bold text-stone-900">Planning de la semaine (J1 → J7)</h2>
+                            <p class="text-xs sm:text-sm text-stone-500">
+                                7 thèmes quotidiens • <strong>${pastryCount} / 7 pâtisserie(s)</strong> planifiée(s) • Budget estimé : <strong class="text-sage-700">${totalWeekCost.toFixed(2)} €</strong>
+                            </p>
+                        </div>
+                        <button type="button" onclick="autoFillWeek()" class="px-4 py-2.5 rounded-2xl bg-terracotta-500 hover:bg-terracotta-600 text-white text-xs sm:text-sm font-bold transition shadow-xs self-start md:self-auto">
+                            ✨ Remplissage auto 7j (J1→J7 + Pâtisseries)
+                        </button>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        ${DAYS.map((day, idx) => {
+                            const theme = DAY_THEMES[idx];
+                            return `
+                                <div class="bg-white rounded-3xl p-4 border border-stone-200/80 shadow-xs space-y-3">
+                                    <div class="flex items-center justify-between gap-2 pb-2 border-b border-stone-100">
+                                        <div>
+                                            <div class="flex items-center gap-2">
+                                                <span class="text-xs font-extrabold px-2 py-0.5 rounded-lg bg-stone-900 text-white">${theme.code}</span>
+                                                <h3 class="font-serif text-lg font-bold text-stone-900">${day}</h3>
+                                            </div>
+                                            <p class="text-xs font-medium text-stone-500 mt-0.5">${escapeHtml(theme.label)}</p>
+                                        </div>
+                                    </div>
+                                    <div class="space-y-2.5">
+                                        ${renderSlotCard(idx, 'lunch', 'Déjeuner')}
+                                        ${renderSlotCard(idx, 'dinner', 'Dîner')}
+                                        ${renderSlotCard(idx, 'pastry', '🍰 Pâtisserie')}
+                                    </div>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                </div>
+            `;
+        }
+
+        function deleteRecipe(recipeId) {
+            const rec = getRecipeById(recipeId);
+            if (!rec) return;
+            state.recipes = state.recipes.filter(r => r.id !== recipeId);
+            state.mealPlan = state.mealPlan.filter(mp => mp.recipeId !== recipeId);
+            saveState();
+            closeModal('modal-recipe-detail');
+            render();
+            showToast(`Recette supprimée : ${rec.title}`);
         }
 
         function renderRecipesTab(container) {
@@ -288,7 +1035,21 @@
                                             ${r.servings || 4} portions • ${(r.ingredients || []).length} ingrédient(s) • ${(r.steps || []).length} étape(s)
                                         </p>
                                     </div>
-<!-- ... existing code ... -->
+                                    <div class="flex items-center justify-between gap-2 pt-2.5 border-t border-stone-100 text-xs">
+                                        <button type="button" onclick="openRecipeDetail('${r.id}', ${r.servings || 4})" class="font-bold text-stone-700 hover:text-stone-900">Voir fiche</button>
+                                        <div class="flex items-center gap-2">
+                                            <button type="button" onclick="openEditRecipeModal('${r.id}')" class="px-2.5 py-1 rounded-lg bg-sand hover:bg-stone-200 font-bold text-stone-800">Modifier</button>
+                                            <button type="button" onclick="deleteRecipe('${r.id}')" class="px-2.5 py-1 rounded-lg bg-red-50 hover:bg-red-100 font-bold text-red-700">Supprimer</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    `}
+                </div>
+            `;
+        }
+
         function openRecipeDetail(recipeId, customServings) {
             const recipe = getRecipeById(recipeId);
             if (!recipe) return;
@@ -313,7 +1074,38 @@
                         </div>
                         <button type="button" onclick="closeModal('modal-recipe-detail')" class="w-9 h-9 rounded-full bg-sand hover:bg-stone-200 flex items-center justify-center text-stone-700 font-bold shrink-0">✕</button>
                     </div>
-<!-- ... existing code ... -->
+
+                    <div class="space-y-2">
+                        <h4 class="text-xs font-bold uppercase tracking-wider text-stone-500">Ingrédients</h4>
+                        <ul class="space-y-1.5">
+                            ${(recipe.ingredients || []).map(ing => {
+                                const q = ing.qty ? Number((ing.qty * ratio).toFixed(2)) : '';
+                                return `
+                                    <li class="flex items-center justify-between text-sm bg-cream px-3 py-2 rounded-xl border border-stone-200/60">
+                                        <span class="font-medium text-stone-800">${escapeHtml(ing.name)}</span>
+                                        <span class="text-xs font-bold text-stone-600">${q} ${escapeHtml(ing.unit || '')}</span>
+                                    </li>
+                                `;
+                            }).join('')}
+                        </ul>
+                    </div>
+
+                    <div class="space-y-2">
+                        <h4 class="text-xs font-bold uppercase tracking-wider text-stone-500">Préparation</h4>
+                        <ol class="space-y-2 list-decimal list-inside text-sm text-stone-700">
+                            ${(recipe.steps || []).map(st => `<li class="bg-sand/50 px-3.5 py-2.5 rounded-xl leading-relaxed">${escapeHtml(st)}</li>`).join('')}
+                        </ol>
+                    </div>
+
+                    <div class="flex items-center justify-end gap-2 pt-2 border-t border-stone-100">
+                        <button type="button" onclick="closeModal('modal-recipe-detail'); openEditRecipeModal('${recipe.id}');" class="px-4 py-2 rounded-xl bg-sand hover:bg-stone-200 text-xs font-bold text-stone-800">Modifier</button>
+                        <button type="button" onclick="deleteRecipe('${recipe.id}')" class="px-4 py-2 rounded-xl bg-red-50 hover:bg-red-100 text-xs font-bold text-red-700">Supprimer</button>
+                    </div>
+                </div>
+            `;
+            modal.classList.remove('hidden');
+        }
+
         function openSelectRecipeModal(dayIndex, slot) {
             state.modalSlotContext = { dayIndex, slot };
             state.modalFilterTag = slot === 'pastry' ? 'Pâtisserie' : 'Tout';
@@ -380,7 +1172,56 @@
                 </button>
             `).join('');
         }
-<!-- ... existing code ... -->
+
+        function addIngredientRow(data = {}) {
+            const box = document.getElementById('ingredients-inputs');
+            if (!box) return;
+            const row = document.createElement('div');
+            row.className = 'ingredient-row grid grid-cols-12 gap-2 items-center';
+            const cat = data.category || 'Épicerie';
+            row.innerHTML = `
+                <input type="text" value="${escapeHtml(data.name || '')}" placeholder="Ingrédient" class="ing-name col-span-5 px-3 py-2 rounded-xl bg-cream border border-stone-200 text-xs" />
+                <input type="number" step="any" value="${data.qty ?? 1}" placeholder="Qté" class="ing-qty col-span-2 px-2 py-2 rounded-xl bg-cream border border-stone-200 text-xs" />
+                <input type="text" value="${escapeHtml(data.unit || 'g')}" placeholder="Unité" class="ing-unit col-span-2 px-2 py-2 rounded-xl bg-cream border border-stone-200 text-xs" />
+                <select class="ing-cat col-span-2 px-2 py-2 rounded-xl bg-cream border border-stone-200 text-[11px]">
+                    <option value="Fruits & Légumes" ${cat === 'Fruits & Légumes' ? 'selected' : ''}>Fruits/Lég.</option>
+                    <option value="Viandes & Poissons" ${cat === 'Viandes & Poissons' ? 'selected' : ''}>Viande/Pois.</option>
+                    <option value="Frais & Crémerie" ${cat === 'Frais & Crémerie' ? 'selected' : ''}>Frais</option>
+                    <option value="Boulangerie" ${cat === 'Boulangerie' ? 'selected' : ''}>Boulangerie</option>
+                    <option value="Épicerie" ${cat === 'Épicerie' ? 'selected' : ''}>Épicerie</option>
+                    <option value="Autres" ${cat === 'Autres' ? 'selected' : ''}>Autres</option>
+                </select>
+                <button type="button" onclick="this.parentElement.remove()" class="col-span-1 text-center text-stone-400 hover:text-red-600 font-bold text-sm">✕</button>
+            `;
+            box.appendChild(row);
+        }
+
+        function resetRecipeFormModal() {
+            document.getElementById('recipe-form-modal-title').textContent = 'Ajouter une recette';
+            document.getElementById('editing-recipe-id').value = '';
+            document.getElementById('recipe-title').value = '';
+            document.getElementById('recipe-tag').value = 'Pâtisserie';
+            document.getElementById('recipe-servings').value = 4;
+            document.getElementById('recipe-cost').value = 8;
+            document.getElementById('recipe-ww-points').value = 6;
+            document.getElementById('recipe-steps').value = '';
+            const ingBox = document.getElementById('ingredients-inputs');
+            if (ingBox) {
+                ingBox.innerHTML = '';
+                addIngredientRow();
+            }
+            const statusEl = document.getElementById('social-extract-status');
+            if (statusEl) {
+                statusEl.textContent = '';
+                statusEl.classList.add('hidden');
+            }
+        }
+
+        function openAddRecipeModal() {
+            resetRecipeFormModal();
+            document.getElementById('modal-add-recipe')?.classList.remove('hidden');
+        }
+
         function openEditRecipeModal(recipeId) {
             const rec = getRecipeById(recipeId);
             if (!rec) return;
@@ -467,7 +1308,390 @@
             closeModal('modal-add-recipe');
             render();
         }
-<!-- ... existing code ... -->
+
+        function computeShoppingList() {
+            const map = new Map();
+            state.mealPlan.forEach(mp => {
+                const rec = getRecipeById(mp.recipeId);
+                if (!rec) return;
+                const factor = (mp.servings || rec.servings || 4) / (rec.servings || 4);
+                (rec.ingredients || []).forEach(ing => {
+                    const name = (ing.name || '').trim();
+                    if (!name) return;
+                    const unit = (ing.unit || 'pièce').trim();
+                    const cat = ing.category || 'Autres';
+                    const key = `${name.toLowerCase()}__${unit.toLowerCase()}`;
+                    const addQty = (Number(ing.qty) || 0) * factor;
+                    if (!map.has(key)) {
+                        map.set(key, { key, name, unit, category: cat, qty: addQty });
+                    } else {
+                        map.get(key).qty += addQty;
+                    }
+                });
+            });
+            return Array.from(map.values()).map(item => ({
+                ...item,
+                qty: Math.round(item.qty * 100) / 100
+            }));
+        }
+
+        function renderShoppingTab(container) {
+            const items = computeShoppingList();
+            const totalItems = items.length + state.manualItems.length + state.quickChecklist.length;
+            const remainingAuto = items.filter(i => !state.checkedAutoItems[i.key]).length;
+            const remainingManual = state.manualItems.filter(m => !m.checked).length;
+            const remainingChecklist = state.quickChecklist.filter(c => !c.checked).length;
+            const remainingCount = remainingAuto + remainingManual + remainingChecklist;
+
+            const grouped = {};
+            items.forEach(item => {
+                if (!grouped[item.category]) grouped[item.category] = [];
+                grouped[item.category].push(item);
+            });
+
+            container.innerHTML = `
+                <div class="space-y-5">
+                    <div class="bg-white rounded-3xl p-4 sm:p-5 border border-stone-200/80 shadow-xs flex flex-wrap items-center justify-between gap-3">
+                        <div>
+                            <h2 class="font-serif text-2xl font-bold text-stone-900">Liste de Courses</h2>
+                            <p class="text-xs sm:text-sm text-stone-500">${remainingCount} article(s) restant(s) sur ${totalItems}</p>
+                        </div>
+                        <button type="button" onclick="clearCheckedItems()" class="px-3.5 py-2 rounded-xl bg-sand hover:bg-stone-200 text-xs font-bold text-stone-800 transition">
+                            Nettoyer cochés
+                        </button>
+                    </div>
+
+                    <!-- Cases libres non alimentaires -->
+                    <div class="bg-white rounded-3xl p-4 sm:p-5 border border-stone-200/80 shadow-xs space-y-3">
+                        <div class="flex items-center justify-between gap-2">
+                            <div>
+                                <h3 class="font-bold text-sm sm:text-base text-stone-900">☑️ Cases libres (non alimentaire &amp; pense-bête)</h3>
+                                <p class="text-xs text-stone-500">Lessive, papier toilette, pharmacie, piles, etc.</p>
+                            </div>
+                            ${state.quickChecklist.length > 0 ? `<button type="button" onclick="clearAllQuickChecklist()" class="text-xs font-bold text-stone-500 hover:text-red-600">Tout effacer</button>` : ''}
+                        </div>
+
+                        <form onsubmit="handleAddQuickChecklistItem(event)" class="flex gap-2">
+                            <input type="text" id="quick-checklist-input" placeholder="Nouvelle case à cocher..." class="flex-1 px-3.5 py-2 rounded-xl bg-cream border border-stone-200 text-xs sm:text-sm focus:outline-none focus:border-terracotta-500" />
+                            <button type="submit" class="px-4 py-2 rounded-xl bg-stone-900 text-white text-xs font-bold hover:bg-stone-800 transition shrink-0">+ Case</button>
+                        </form>
+
+                        <div class="space-y-1.5">
+                            ${state.quickChecklist.map(chk => `
+                                <div class="flex items-center justify-between gap-2 px-3 py-2 rounded-xl bg-cream border border-stone-200/60">
+                                    <label class="flex items-center gap-2.5 flex-1 cursor-pointer select-none min-w-0">
+                                        <input type="checkbox" ${chk.checked ? 'checked' : ''} onchange="toggleQuickChecklistItem('${chk.id}')" class="w-4 h-4 accent-terracotta-500 rounded" />
+                                        <span class="text-xs sm:text-sm font-medium truncate ${chk.checked ? 'line-through text-stone-400' : 'text-stone-800'}">${escapeHtml(chk.label)}</span>
+                                    </label>
+                                    <button type="button" onclick="deleteQuickChecklistItem('${chk.id}')" class="text-xs text-stone-400 hover:text-red-600 font-bold px-1.5">✕</button>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+
+                    <!-- Ajout manuel alimentaire -->
+                    <form onsubmit="handleAddManualItem(event)" class="bg-white rounded-3xl p-4 border border-stone-200/80 shadow-xs grid grid-cols-1 sm:grid-cols-12 gap-2">
+                        <input type="text" id="manual-item-name" placeholder="Ajouter un article alimentaire..." class="sm:col-span-5 px-3.5 py-2 rounded-xl bg-cream border border-stone-200 text-xs sm:text-sm" />
+                        <input type="number" step="any" id="manual-item-qty" value="1" class="sm:col-span-2 px-3 py-2 rounded-xl bg-cream border border-stone-200 text-xs sm:text-sm" />
+                        <input type="text" id="manual-item-unit" value="pièce" class="sm:col-span-2 px-3 py-2 rounded-xl bg-cream border border-stone-200 text-xs sm:text-sm" />
+                        <select id="manual-item-cat" class="sm:col-span-2 px-2.5 py-2 rounded-xl bg-cream border border-stone-200 text-xs">
+                            <option value="Fruits & Légumes">Fruits &amp; Légumes</option>
+                            <option value="Viandes & Poissons">Viandes &amp; Poissons</option>
+                            <option value="Frais & Crémerie">Frais &amp; Crémerie</option>
+                            <option value="Boulangerie">Boulangerie</option>
+                            <option value="Épicerie" selected>Épicerie</option>
+                            <option value="Autres">Autres</option>
+                        </select>
+                        <button type="submit" class="sm:col-span-1 py-2 px-3 rounded-xl bg-terracotta-500 text-white text-xs font-bold hover:bg-terracotta-600">+</button>
+                    </form>
+
+                    <!-- Articles manuels -->
+                    ${state.manualItems.length > 0 ? `
+                        <div class="bg-white rounded-3xl p-4 border border-stone-200/80 shadow-xs space-y-2">
+                            <h3 class="text-xs font-bold uppercase tracking-wider text-stone-500">Ajouts manuels</h3>
+                            ${state.manualItems.map(m => `
+                                <div class="flex items-center justify-between gap-2 px-3 py-2 rounded-xl bg-cream border border-stone-200/60">
+                                    <label class="flex items-center gap-2.5 flex-1 cursor-pointer min-w-0">
+                                        <input type="checkbox" ${m.checked ? 'checked' : ''} onchange="toggleManualItem('${m.id}')" class="w-4 h-4 accent-terracotta-500" />
+                                        <span class="text-xs sm:text-sm font-medium truncate ${m.checked ? 'line-through text-stone-400' : 'text-stone-800'}">${escapeHtml(m.name)}</span>
+                                    </label>
+                                    <div class="flex items-center gap-2 shrink-0">
+                                        <span class="text-xs font-bold text-stone-600">${m.qty} ${escapeHtml(m.unit)}</span>
+                                        <button type="button" onclick="deleteManualItem('${m.id}')" class="text-xs text-stone-400 hover:text-red-600 font-bold">✕</button>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    ` : ''}
+
+                    <!-- Ingrédients issus du planning -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        ${Object.keys(grouped).map(cat => `
+                            <div class="bg-white rounded-3xl p-4 border border-stone-200/80 shadow-xs space-y-2">
+                                <h3 class="font-serif text-base font-bold text-stone-900">${escapeHtml(cat)}</h3>
+                                <div class="space-y-1.5">
+                                    ${grouped[cat].map(item => {
+                                        const checked = !!state.checkedAutoItems[item.key];
+                                        return `
+                                            <label class="flex items-center justify-between gap-2 px-3 py-2 rounded-xl bg-cream border border-stone-200/60 cursor-pointer">
+                                                <span class="flex items-center gap-2.5 min-w-0">
+                                                    <input type="checkbox" ${checked ? 'checked' : ''} onchange="toggleAutoShoppingItem('${escapeHtml(item.key)}')" class="w-4 h-4 accent-terracotta-500" />
+                                                    <span class="text-xs sm:text-sm font-medium truncate ${checked ? 'line-through text-stone-400' : 'text-stone-800'}">${escapeHtml(item.name)}</span>
+                                                </span>
+                                                <span class="text-xs font-bold text-stone-600 shrink-0">${item.qty || ''} ${escapeHtml(item.unit)}</span>
+                                            </label>
+                                        `;
+                                    }).join('')}
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        }
+
+        function toggleAutoShoppingItem(key) {
+            state.checkedAutoItems[key] = !state.checkedAutoItems[key];
+            saveState();
+            render();
+        }
+
+        function handleAddManualItem(e) {
+            e.preventDefault();
+            const nameEl = document.getElementById('manual-item-name');
+            const qtyEl = document.getElementById('manual-item-qty');
+            const unitEl = document.getElementById('manual-item-unit');
+            const catEl = document.getElementById('manual-item-cat');
+            const name = (nameEl?.value || '').trim();
+            if (!name) return;
+            state.manualItems.push({
+                id: 'man-' + Date.now(),
+                name,
+                qty: parseFloat(qtyEl?.value) || 1,
+                unit: (unitEl?.value || 'pièce').trim() || 'pièce',
+                category: catEl?.value || 'Épicerie',
+                checked: false
+            });
+            if (nameEl) nameEl.value = '';
+            saveState();
+            render();
+            showToast('Article ajouté');
+        }
+
+        function toggleManualItem(id) {
+            const item = state.manualItems.find(m => m.id === id);
+            if (item) {
+                item.checked = !item.checked;
+                saveState();
+                render();
+            }
+        }
+
+        function deleteManualItem(id) {
+            state.manualItems = state.manualItems.filter(m => m.id !== id);
+            saveState();
+            render();
+        }
+
+        function handleAddQuickChecklistItem(e) {
+            e.preventDefault();
+            const input = document.getElementById('quick-checklist-input');
+            const label = (input?.value || '').trim();
+            if (!label) return;
+            state.quickChecklist.unshift({
+                id: 'chk-' + Date.now(),
+                label,
+                checked: false
+            });
+            saveState();
+            render();
+            document.getElementById('quick-checklist-input')?.focus();
+            showToast('Case ajoutée');
+        }
+
+        function toggleQuickChecklistItem(id) {
+            const item = state.quickChecklist.find(c => c.id === id);
+            if (item) {
+                item.checked = !item.checked;
+                saveState();
+                render();
+            }
+        }
+
+        function deleteQuickChecklistItem(id) {
+            state.quickChecklist = state.quickChecklist.filter(c => c.id !== id);
+            saveState();
+            render();
+        }
+
+        function clearAllQuickChecklist() {
+            state.quickChecklist = [];
+            saveState();
+            render();
+        }
+
+        function clearCheckedItems() {
+            Object.keys(state.checkedAutoItems).forEach(k => {
+                if (state.checkedAutoItems[k]) delete state.checkedAutoItems[k];
+            });
+            state.manualItems = state.manualItems.filter(m => !m.checked);
+            state.quickChecklist = state.quickChecklist.filter(c => !c.checked);
+            saveState();
+            render();
+            showToast('Articles cochés retirés');
+        }
+
+        function exportBackupFile() {
+            const payload = {
+                app: 'Saveurs & Budget',
+                version: 2,
+                exportedAt: new Date().toISOString(),
+                recipes: state.recipes,
+                mealPlan: state.mealPlan,
+                manualItems: state.manualItems,
+                quickChecklist: state.quickChecklist,
+                checkedAutoItems: state.checkedAutoItems
+            };
+            const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `saveurs-budget-${new Date().toISOString().slice(0, 10)}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showToast('Sauvegarde téléchargée');
+        }
+
+        function importBackupFile(event) {
+            const file = event.target.files?.[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = e => {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    if (!Array.isArray(data.recipes) || data.recipes.length === 0) {
+                        showToast('Fichier invalide', '⚠️');
+                        return;
+                    }
+                    state.recipes = data.recipes;
+                    state.mealPlan = Array.isArray(data.mealPlan) ? data.mealPlan : [];
+                    state.manualItems = Array.isArray(data.manualItems) ? data.manualItems : [];
+                    state.quickChecklist = Array.isArray(data.quickChecklist) ? data.quickChecklist : [];
+                    state.checkedAutoItems = data.checkedAutoItems || {};
+                    saveState();
+                    closeModal('modal-backup');
+                    render();
+                    showToast('Données restaurées');
+                } catch (err) {
+                    showToast('Lecture JSON impossible', '⚠️');
+                }
+            };
+            reader.readAsText(file);
+            event.target.value = '';
+        }
+
+        function copyShareUrl() {
+            const input = document.getElementById('share-url-input');
+            if (!input) return;
+            input.select();
+            input.setSelectionRange(0, 99999);
+            try {
+                document.execCommand('copy');
+                showToast('Lien copié');
+            } catch (err) {
+                showToast('Copiez le lien manuellement', 'ℹ️');
+            }
+        }
+
+        async function nativeShareApp() {
+            const url = (document.getElementById('share-url-input')?.value || window.location.href).trim();
+            if (navigator.share) {
+                try {
+                    await navigator.share({ title: 'Saveurs & Budget', url });
+                } catch (err) {}
+            } else {
+                copyShareUrl();
+            }
+        }
+
+        function getGeminiApiKey() {
+            try {
+                return (localStorage.getItem(GEMINI_KEY_STORAGE) || '').trim();
+            } catch (err) {
+                return '';
+            }
+        }
+
+        function toggleApiKeyPanel() {
+            const panel = document.getElementById('api-key-panel');
+            const input = document.getElementById('gemini-api-key-input');
+            if (!panel) return;
+            panel.classList.toggle('hidden');
+            if (!panel.classList.contains('hidden') && input) {
+                input.value = getGeminiApiKey();
+            }
+        }
+
+        function saveGeminiApiKey() {
+            const input = document.getElementById('gemini-api-key-input');
+            const val = (input?.value || '').trim();
+            try {
+                if (val) localStorage.setItem(GEMINI_KEY_STORAGE, val);
+                else localStorage.removeItem(GEMINI_KEY_STORAGE);
+                showToast(val ? 'Clé API enregistrée' : 'Clé API effacée');
+                document.getElementById('api-key-panel')?.classList.add('hidden');
+            } catch (err) {
+                showToast('Enregistrement impossible', '⚠️');
+            }
+        }
+
+        function readFileAsBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => {
+                    const res = String(reader.result || '');
+                    const idx = res.indexOf(',');
+                    resolve(idx >= 0 ? res.slice(idx + 1) : res);
+                };
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+        }
+
+        async function handleSocialMediaChange(event) {
+            const file = event.target.files?.[0];
+            if (!file) return;
+            const isVideo = file.type.startsWith('video/');
+            const maxBytes = isVideo ? 18 * 1024 * 1024 : 8 * 1024 * 1024;
+            if (file.size > maxBytes) {
+                showToast(isVideo ? 'Vidéo trop lourde (max 18 Mo)' : 'Image trop lourde (max 8 Mo)', '⚠️');
+                event.target.value = '';
+                return;
+            }
+            try {
+                const base64 = await readFileAsBase64(file);
+                socialMediaAttachment = {
+                    name: file.name,
+                    mimeType: file.type || (isVideo ? 'video/mp4' : 'image/jpeg'),
+                    data: base64
+                };
+                document.getElementById('social-media-preview')?.classList.remove('hidden');
+                const lbl = document.getElementById('social-media-label');
+                if (lbl) lbl.textContent = `${isVideo ? '🎬' : '📷'} ${file.name}`;
+            } catch (err) {
+                showToast('Lecture du fichier impossible', '⚠️');
+            }
+        }
+
+        function clearSocialMediaAttachment() {
+            socialMediaAttachment = null;
+            const fileInput = document.getElementById('social-media-file');
+            if (fileInput) fileInput.value = '';
+            document.getElementById('social-media-preview')?.classList.add('hidden');
+        }
+
         function applyExtractedRecipeToForm(data) {
             if (!data || typeof data !== 'object') return;
             if (data.title) document.getElementById('recipe-title').value = String(data.title).trim();
@@ -498,6 +1722,19 @@
             }
         }
 
+        function parseRecipeJsonLoose(rawText) {
+            const cleaned = String(rawText || '')
+                .replace(/```json\s*/gi, '')
+                .replace(/```\s*/g, '')
+                .trim();
+            const firstBrace = cleaned.indexOf('{');
+            const lastBrace = cleaned.lastIndexOf('}');
+            if (firstBrace === -1 || lastBrace === -1 || lastBrace <= firstBrace) {
+                throw new Error('JSON absent');
+            }
+            return JSON.parse(cleaned.slice(firstBrace, lastBrace + 1));
+        }
+
         async function extractRecipeFromSocial() {
             const rawUrl = (document.getElementById('social-raw-url')?.value || '').trim();
             const rawText = (document.getElementById('social-raw-text')?.value || '').trim();
@@ -507,7 +1744,7 @@
 
             if (!apiKey) {
                 if (statusEl) {
-                    statusEl.textContent = 'Ajoutez d’abord votre clé API Google Gemini dans « ⚙️ Réglage clé API IA » ci-dessus.';
+                    statusEl.textContent = 'Ajoutez d’abord votre clé API Google Gemini dans « ⚙️ Réglage clé API IA ».';
                     statusEl.classList.remove('hidden');
                 }
                 return;
@@ -515,7 +1752,7 @@
 
             if (!rawUrl && !rawText && !socialMediaAttachment) {
                 if (statusEl) {
-                    statusEl.textContent = 'Importez une photo/vidéo ou saisissez un texte de recette avant de lancer l’extraction.';
+                    statusEl.textContent = 'Importez une photo/vidéo ou saisissez un texte avant de lancer l’extraction.';
                     statusEl.classList.remove('hidden');
                 }
                 return;
@@ -526,43 +1763,72 @@
                 btnEl.textContent = 'Traduction & extraction...';
             }
             if (statusEl) {
-                statusEl.textContent = 'Analyse, traduction automatique vers le français et estimation des points WW...';
+                statusEl.textContent = 'Traduction vers le français, extraction et estimation WW en cours...';
                 statusEl.classList.remove('hidden');
             }
 
             const prompt = [
-                'Tu es un assistant culinaire bilingue/multilingue expert et coach Weight Watchers.',
-                'La vidéo, l’audio, la photo ou le texte peuvent être dans N’IMPORTE QUELLE LANGUE (anglais, espagnol, italien, arabe, portugais, japonais, coréen, allemand, etc.).',
-                'TRADUIS ET RÉDIGE INTÉGRALEMENT LA RECETTE EN FRANÇAIS naturel (titre, ingrédients, unités converties clairement en français si besoin, et étapes de préparation).',
-                'Estime également un nombre raisonnable de points Weight Watchers par part (wwPoints, entier >= 0) selon les ingrédients et portions.',
-                'Si la photo contient de l’écriture manuscrite, déchiffre soigneusement chaque mot, chiffre et unité puis traduis en français.',
-                'Réponds UNIQUEMENT avec un objet JSON valide sans texte autour, suivant exactement cette structure :',
-                '{"title":"Titre traduit en français","tag":"Pâtisserie","servings":4,"cost":8.5,"wwPoints":6,"ingredients":[{"name":"Ingrédient en français","qty":250,"unit":"g","category":"Épicerie"}],"steps":["Étape 1 en français","Étape 2 en français"]}',
+                'Tu es un assistant culinaire multilingue et coach Weight Watchers.',
+                'La vidéo, l’audio, la photo ou le texte peuvent être dans N’IMPORTE QUELLE LANGUE.',
+                'TRADUIS ET RÉDIGE INTÉGRALEMENT LA RECETTE EN FRANÇAIS naturel (titre, ingrédients, étapes).',
+                'Si la photo est manuscrite, déchiffre soigneusement chaque mot et chiffre puis traduis en français.',
+                'Estime un nombre de points Weight Watchers par part (wwPoints, entier >= 0).',
+                'Réponds UNIQUEMENT avec un objet JSON valide sans texte autour :',
+                '{"title":"Titre en français","tag":"Pâtisserie","servings":4,"cost":8.5,"wwPoints":6,"ingredients":[{"name":"Ingrédient","qty":250,"unit":"g","category":"Épicerie"}],"steps":["Étape 1","Étape 2"]}',
                 'Valeurs possibles pour tag : "Pâtisserie", "Viande + accompagnement", "Recette italienne", "Pâtes + sauces", "Cuisine du monde", "Poisson", "Plat mijoté", "Fast food".',
                 'Valeurs possibles pour category : "Fruits & Légumes", "Viandes & Poissons", "Frais & Crémerie", "Boulangerie", "Épicerie", "Autres".',
                 rawUrl ? `Lien : ${rawUrl}` : '',
-                rawText ? `Texte ou légende (toute langue -> traduire en français) : ${rawText}` : ''
+                rawText ? `Texte à traduire en français : ${rawText}` : ''
             ].filter(Boolean).join('\n');
-<!-- ... existing code ... -->
+
+            const parts = [{ text: prompt }];
+            if (socialMediaAttachment?.data) {
+                parts.push({
+                    inlineData: {
+                        mimeType: socialMediaAttachment.mimeType,
+                        data: socialMediaAttachment.data
+                    }
+                });
+            }
+
+            const models = ['gemini-2.5-flash', 'gemini-2.0-flash'];
+            let lastErrMsg = '';
+
+            try {
+                for (const model of models) {
+                    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`;
+                    const resp = await fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            contents: [{ role: 'user', parts }],
+                            generationConfig: { temperature: 0.2 }
+                        })
+                    });
+                    const json = await resp.json();
+                    if (!resp.ok) {
+                        lastErrMsg = json?.error?.message || `Erreur HTTP ${resp.status}`;
+                        continue;
+                    }
+                    const candidateText = json?.candidates?.[0]?.content?.parts?.map(p => p.text || '').join('\n') || '';
                     try {
                         const parsedRecipe = parseRecipeJsonLoose(candidateText);
                         applyExtractedRecipeToForm(parsedRecipe);
                         if (statusEl) {
-                            statusEl.textContent = '✅ Recette traduite en français et extraite (avec estimation des points WW). Vérifiez puis enregistrez.';
+                            statusEl.textContent = '✅ Recette traduite en français et extraite. Vérifiez puis enregistrez.';
                         }
-                        showToast('Recette traduite et extraite !');
+                        showToast('Recette extraite et traduite');
                         return;
                     } catch (parseErr) {
-                        lastErrMsg = 'Réponse IA reçue mais format JSON non reconnu.';
+                        lastErrMsg = 'Format JSON non reconnu';
                     }
                 }
-
                 if (statusEl) {
-                    statusEl.textContent = `Extraction impossible (${lastErrMsg || 'service indisponible'}). Vous pouvez remplir les champs manuellement ci-dessous.`;
+                    statusEl.textContent = `Extraction impossible (${lastErrMsg || 'service indisponible'}).`;
                 }
             } catch (err) {
                 if (statusEl) {
-                    statusEl.textContent = `Erreur réseau : ${err.message || 'connexion impossible'}. Vous pouvez remplir les champs manuellement ci-dessous.`;
+                    statusEl.textContent = `Erreur réseau : ${err.message || 'connexion impossible'}.`;
                 }
             } finally {
                 if (btnEl) {
@@ -571,4 +1837,23 @@
                 }
             }
         }
-<!-- ... existing code ... -->
+
+        function render() {
+            const container = document.getElementById('app-content');
+            if (!container) return;
+            if (state.activeTab === 'recipes') {
+                renderRecipesTab(container);
+            } else if (state.activeTab === 'shopping') {
+                renderShoppingTab(container);
+            } else {
+                renderWeekTab(container);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadState();
+            render();
+        });
+    </script>
+</body>
+</html>
