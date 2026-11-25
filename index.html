@@ -124,7 +124,7 @@
             </div>
         </div>
 
-        <!-- MODALE 2 : Ajouter une recette (avec simulation Instagram/TikTok) -->
+        <!-- MODALE 2 : Ajouter une recette (avec extracteur IA Photo, Vidéo, Lien, Texte) -->
         <div id="modal-add-recipe" class="fixed inset-0 bg-stone-900/50 backdrop-blur-xs z-40 hidden flex items-end sm:items-center justify-center">
             <div class="bg-cream w-full max-w-md rounded-t-3xl sm:rounded-3xl max-h-[92vh] flex flex-col overflow-hidden shadow-2xl animate-fade">
                 <div class="px-5 py-4 bg-white border-b border-stone-200 flex justify-between items-center">
@@ -133,7 +133,7 @@
                 </div>
                 
                 <div class="overflow-y-auto p-5 space-y-4">
-                    <!-- Extracteur IA Réseaux Sociaux (Texte ou Fichier Vidéo) -->
+                    <!-- Extracteur IA Réseaux Sociaux (Lien, Texte, Photo ou Vidéo) -->
                     <div class="bg-gradient-to-br from-terracotta-50 to-amber-50 border border-terracotta-200 rounded-2xl p-3.5 space-y-2.5">
                         <div class="flex items-center justify-between">
                             <span class="text-xs font-bold uppercase tracking-wide text-terracotta-600 flex items-center gap-1.5">
@@ -570,8 +570,14 @@
                 loaded = memoryFallbackState;
             }
 
-            if (loaded && Array.isArray(loaded.recipes)) {
-                state = { ...state, ...loaded };
+            if (loaded && Array.isArray(loaded.recipes) && loaded.recipes.length > 0) {
+                state = {
+                    ...state,
+                    ...loaded,
+                    mealPlan: Array.isArray(loaded.mealPlan) ? loaded.mealPlan : [],
+                    manualItems: Array.isArray(loaded.manualItems) ? loaded.manualItems : [],
+                    checkedAutoItems: loaded.checkedAutoItems && typeof loaded.checkedAutoItems === 'object' ? loaded.checkedAutoItems : {}
+                };
                 memoryFallbackState = JSON.parse(JSON.stringify(state));
             } else {
                 initDefaultWeek();
@@ -673,11 +679,16 @@
             const container = document.getElementById('app-content');
             if (!container) return;
 
-            if (state.currentTab === 'recipes') {
-                container.innerHTML = renderRecipesTab();
-            } else if (state.currentTab === 'shopping') {
-                container.innerHTML = renderShoppingTab();
-            } else {
+            try {
+                if (state.currentTab === 'recipes') {
+                    container.innerHTML = renderRecipesTab();
+                } else if (state.currentTab === 'shopping') {
+                    container.innerHTML = renderShoppingTab();
+                } else {
+                    container.innerHTML = renderWeekTab();
+                }
+            } catch (err) {
+                initDefaultWeek();
                 container.innerHTML = renderWeekTab();
             }
         }
@@ -1348,25 +1359,6 @@ ${rawText ? `\nTexte / légende de la vidéo :\n${rawText}` : ''}`
             container.appendChild(div);
         }
 
-        function simulateSocialImport() {
-            document.getElementById('rec-title').value = 'Chakchouka express aux œufs & feta';
-            document.getElementById('rec-theme').value = 'Monde';
-            document.getElementById('rec-servings').value = 4;
-            document.getElementById('rec-time').value = 20;
-            document.getElementById('rec-cost').value = 6.5;
-            document.getElementById('rec-steps').value = "1. Faire revenir l'oignon et le poivron émincés 5 min dans l'huile d'olive.\n2. Verser les tomates concassées, le cumin et le paprika. Laisser mijoter 8 min.\n3. Casser les œufs directement dans la sauce, couvrir 4 min et parsemer de feta.";
-
-            const container = document.getElementById('ingredients-inputs');
-            container.innerHTML = '';
-            addIngredientRow('Tomates concassées', 400, 'g', 'Épicerie & Pâtes');
-            addIngredientRow('Œufs', 4, 'pièce', 'Crèmerie');
-            addIngredientRow('Oignon jaune', 1, 'pièce', 'Fruits & Légumes');
-            addIngredientRow('Poivron rouge', 1, 'pièce', 'Fruits & Légumes');
-            addIngredientRow('Feta', 100, 'g', 'Crèmerie');
-
-            showToast('Recette extraite depuis TikTok !', '✨');
-        }
-
         function saveNewRecipe(e) {
             e.preventDefault();
             const title = document.getElementById('rec-title').value.trim();
@@ -1426,7 +1418,6 @@ ${rawText ? `\nTexte / légende de la vidéo :\n${rawText}` : ''}`
             const rec = state.recipes.find(r => r.id === recipeId);
             if (!rec) return;
             state.selectedRecipeForPlan = recipeId;
-            // Pré-sélectionner automatiquement le jour ou le moment Dessert / Goûter
             if (rec.theme === 'Desserts & Goûters') {
                 document.getElementById('plan-meal').value = 'Dessert / Goûter';
             } else {
@@ -1463,7 +1454,6 @@ ${rawText ? `\nTexte / légende de la vidéo :\n${rawText}` : ''}`
         function autoFillWeek() {
             const newPlan = [];
             WEEK_SLOTS.forEach((slot, idx) => {
-                // Cherche les recettes correspondant au thème du jour
                 let candidates = state.recipes.filter(r => r.theme === slot.theme);
                 if (candidates.length === 0) candidates = state.recipes.filter(r => r.theme !== 'Desserts & Goûters');
                 if (candidates.length > 0) {
@@ -1477,7 +1467,6 @@ ${rawText ? `\nTexte / légende de la vidéo :\n${rawText}` : ''}`
                     });
                 }
             });
-            // Ajoute également 2 idées desserts/goûters sur la semaine si disponibles
             const dessertCandidates = state.recipes.filter(r => r.theme === 'Desserts & Goûters');
             if (dessertCandidates.length > 0) {
                 const d1 = dessertCandidates[0];
@@ -1531,7 +1520,6 @@ ${rawText ? `\nTexte / légende de la vidéo :\n${rawText}` : ''}`
         }
 
         function renderWeekTab() {
-            // Calcul du budget total estimé de la semaine
             let totalWeekBudget = 0;
             state.mealPlan.forEach(item => {
                 const rec = state.recipes.find(r => r.id === item.recipeId);
@@ -1648,7 +1636,6 @@ ${rawText ? `\nTexte / légende de la vidéo :\n${rawText}` : ''}`
                 showToast('Ajoute d\'abord une recette !', '⚠️');
                 return;
             }
-            // Mettre en avant les recettes du thème correspondant, puis les desserts/goûters, puis les autres
             const themeRecipes = state.recipes.filter(r => r.theme === theme);
             const dessertRecipes = state.recipes.filter(r => r.theme === 'Desserts & Goûters' && r.theme !== theme);
             const otherRecipes = state.recipes.filter(r => r.theme !== theme && r.theme !== 'Desserts & Goûters');
@@ -1704,7 +1691,6 @@ ${rawText ? `\nTexte / légende de la vidéo :\n${rawText}` : ''}`
                 const ratio = planItem.servings / rec.servings;
 
                 rec.ingredients.forEach(ing => {
-                    // Normalisation du nom pour regrouper les mêmes ingrédients (ex: Oignon jaune)
                     const cleanName = ing.name.trim();
                     const key = `${cleanName.toLowerCase()}_${ing.unit.toLowerCase()}`;
                     const scaledQty = ing.qty * ratio;
@@ -1782,7 +1768,6 @@ ${rawText ? `\nTexte / légende de la vidéo :\n${rawText}` : ''}`
                 'Autres / Maison': '🧻'
             };
 
-            // Regroupement par rayon
             const grouped = {};
             aislesOrder.forEach(a => grouped[a] = []);
 
@@ -1905,7 +1890,6 @@ ${rawText ? `\nTexte / légende de la vidéo :\n${rawText}` : ''}`
                 text += `${check} ${item.name}\n`;
             });
 
-            // Copie compatible iframe via textarea temporaire
             const textarea = document.createElement('textarea');
             textarea.value = text;
             document.body.appendChild(textarea);
@@ -1916,11 +1900,17 @@ ${rawText ? `\nTexte / légende de la vidéo :\n${rawText}` : ''}`
             showToast('Liste copiée ! Prête à coller dans Notes/WhatsApp', '📋');
         }
 
-        // Lancement au chargement
-        window.onload = function() {
+        // Lancement immédiat dès que le DOM est prêt
+        function startApp() {
             loadState();
             render();
-        };
+        }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', startApp);
+        } else {
+            startApp();
+        }
     </script>
 </body>
 </html>
