@@ -1874,7 +1874,11 @@ Règles strictes :
             promptParts.unshift({ text: userPromptText });
 
             const apiKey = getActiveApiKey();
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${apiKey}`;
+            const candidateModels = [
+                'gemini-3.8-flash',
+                'gemini-2.5-flash',
+                'gemini-3.8-flash-lite'
+            ];
 
             const payload = {
                 contents: [{ role: 'user', parts: promptParts }],
@@ -1913,19 +1917,33 @@ Règles strictes :
             try {
                 let response = null;
                 let lastErrText = '';
-                for (let attempt = 0; attempt < 3; attempt++) {
-                    response = await fetch(apiUrl, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(payload)
-                    });
-                    if (response.ok) break;
-                    lastErrText = await response.text().catch(() => '');
-                    if (response.status === 400 || response.status === 401 || response.status === 403) break;
-                    await new Promise(r => setTimeout(r, 1000 * Math.pow(2, attempt)));
+                let successModel = null;
+
+                for (const modelName of candidateModels) {
+                    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+                    for (let attempt = 0; attempt < 3; attempt++) {
+                        if (attempt > 0 || modelName !== candidateModels[0]) {
+                            statusEl.textContent = `⏳ Pic de charge détecté, nouvelle tentative (${modelName})...`;
+                        }
+                        response = await fetch(apiUrl, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(payload)
+                        });
+                        if (response.ok) {
+                            successModel = modelName;
+                            break;
+                        }
+                        lastErrText = await response.text().catch(() => '');
+                        if (response.status === 400 || response.status === 401 || response.status === 403 || response.status === 404) {
+                            break;
+                        }
+                        await new Promise(r => setTimeout(r, 1200 * Math.pow(2, attempt)));
+                    }
+                    if (successModel) break;
                 }
 
-                if (!response || !response.ok) {
+                if (!successModel) {
                     if (response && (response.status === 400 || response.status === 401 || response.status === 403) && !apiKey) {
                         throw new Error("Clé API requise sur ce domaine : ouvrez '⚙️ Réglage clé API IA' ci-dessus pour coller votre clé gratuite Google AI Studio.");
                     }
